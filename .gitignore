@@ -1,0 +1,20 @@
+# Dependency directories
+node_modules/
+
+# dotenv environment variables file
+.env
+.env.development
+.env.prod
+
+#package lock file
+package-lock.json
+
+# Logs
+logs
+
+# OS generated files
+.DS_Store
+Thumbs.db
+
+# Temporary files for uploads if you store them locally before sending to S3
+uploads/
