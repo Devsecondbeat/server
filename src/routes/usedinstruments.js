@@ -4,6 +4,7 @@ import multerS3 from 'multer-s3';
 import AWS from '@aws-sdk/client-s3';
 import { S3Client } from '@aws-sdk/client-s3';
 import {getinstrumentMakes} from '../controllers/instrumentMakesController.js';
+import {createinstrumentAds, getinstrumentAds, getinstrumentAdsbyUser, updateinstrumentAds, deleteinstrumentAds} from '../controllers/instrumentMakesController.js';
 const usedInstrumentsRouter = express.Router();
 
 
@@ -45,5 +46,21 @@ usedInstrumentsRouter.get('/getImageURL', (req,res) => {
 
 usedInstrumentsRouter.get('/getinstrumentMakes',getinstrumentMakes);
 
+usedInstrumentsRouter.post('/createinstrumentAds',(req,res) => {
+  
+  createinstrumentAds(req, res);
+});
+
+usedInstrumentsRouter.get('/getinstrumentAds', getinstrumentAds);
+
+usedInstrumentsRouter.get('/getinstrumentAdsbyUser/:id',getinstrumentAdsbyUser);
+
+usedInstrumentsRouter.put('/updateinstrumentAds/:id',(req,res) => {
+  updateinstrumentAds(req, res);
+});
+
+usedInstrumentsRouter.delete('/deleteinstrumentAds/:id',(req,res) => {
+  deleteinstrumentAds(req, res);
+});
 
 export default usedInstrumentsRouter;

@@ -4,6 +4,8 @@ import instrumentRoutes from './usedinstruments.js';
 const router = express.Router();
 
 // Use imported routes
-router.use('/instruments', instrumentRoutes);
+router.use('/', instrumentRoutes);
+
+
 
 export default router;
