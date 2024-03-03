@@ -11,6 +11,9 @@ const PORT = process.env.PORT;
 // Middleware to parse JSON bodies
 app.use(express.json());
 
+// parse incoming Request Object if object, with nested objects, or generally any type.
+app.use(express.urlencoded({ extended: true }));
+
 app.get('/', (req, res) => {
   res.json({ message: 'Hello, this is the root API endpoint!' });
 });
