@@ -1,41 +1,54 @@
-import {userRegistration} from '../models/user_registration_model.js';
+import {userRegistration, checkifUserExists} from '../models/user_registration_model.js';
 import {sendActivationEmail} from '../Utils/sendEmail.js';
+import { generateEncryptedPassword, generateActivationLink } from '../Utils/codeGen.js';
 
-const userRegistrationRepsonse = (success, message) => {
+const userRegistrationResponse = (userID,success, message) => {
 
     return{
+        ID:userID,
         success:success,
         message:message
     }
 }
 
 
+/*
+Is this the right way to use async and await. 
+*/
+
 const registerUser = async (req, res, next) => {
 
     try{
         console.log("Register User request");
+        const {firstName, lastName, phoneNumber, emailID, password} = req.body;
 
+        const userExists = await checkifUserExists(emailID);
+        console.log(userExists);
+        
         //need to check if the user already exists in the database. 
-        const userName=`${req.body.firstName} ${req.body.lastName}`;
+        if(userExists)
+           return res.status(400).json(userRegistrationResponse(null,false,"User already registered with the emailID"));
 
-        const registerUserResp = await userRegistration(req.body.firstName,req.body.lastName,req.body.phoneNumber, req.body.emailID,req.body.password);
+        const userName=`${firstName} ${lastName}`;
+
+        const encryptedPassword = await generateEncryptedPassword(password);
+               
+        const newUser = await userRegistration(firstName,lastName,phoneNumber,emailID,encryptedPassword);
         console.log("User Registration Successful!!");
-        userRegistrationRepsonse(true, "User registered successfully.");
-        res.status(201).json(registerUserResp);
-        
-        //Need to make this async call and create a promise for these methods. 
 
-        //Need another function that generates activation link. 
+         console.log(newUser);
+         res.status(201).json(userRegistrationRepsonse(newUser,true,"User Registered successfully"));
+
+        //Need another function that generates activation link.
+        const link = await generateActivationLink(emailID); 
         
-        sendActivationEmail(req.body.emailID, Link, userName);
+        sendActivationEmail(emailID, link, userName);
+
 
     }
     catch(error){
         next(error);
     }
 };
-
-
-
 
 export {registerUser};

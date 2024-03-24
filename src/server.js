@@ -7,6 +7,9 @@ import routes from './routes/apiroutes.js';
 const app = express();
 const PORT = process.env.PORT;
 
+
+// To display the global variables defined in codeGen js file. 
+
 //app.use(helmet());
 // Middleware to parse JSON bodies
 app.use(express.json());
