@@ -6,7 +6,7 @@ import routes from './routes/apiroutes.js';
 
 const app = express();
 const PORT = process.env.PORT;
-
+const authenticateToken = () => {};
 
 // To display the global variables defined in codeGen js file. 
 

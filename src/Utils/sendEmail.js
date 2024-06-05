@@ -22,9 +22,3 @@ export const sendActivationEmail = async (recipientEmail, activationLink, userNa
     .then(() => console.log('Activation email sent successfully'))
     .catch(error => console.error('Error sending activation email:', error));
 };
-
-
-
-
-
-

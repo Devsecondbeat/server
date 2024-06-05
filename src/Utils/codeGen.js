@@ -67,9 +67,26 @@ export const comparePassword = (userPassword, hashPassword) => {
 
 export const genAuthToken = (emailID) => {
 
+//generate token expires in 30mins. 
+  
 let token = jwt.sign({emailID:emailID},process.env.Token_Secret_Key,{ expiresIn: 3600 });
 
 console.log(token);
 return token;
 
+}
+
+
+export const validateAuthToken  = (token, emailID) => {
+  
+  if(token)
+  {
+    const decode = jwt.verify(token,process.env.Token_Secret_Key);
+
+    console.log(decode);
+    if(decode.emailID === emailID)
+      return true;
+
+  }
+  return false;
 }

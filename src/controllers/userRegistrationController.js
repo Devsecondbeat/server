@@ -25,7 +25,6 @@ const registerUser = async (req, res, next) => {
         const userExists = await checkifUserExists(emailID);
         console.log(userExists);
         
-        //need to check if the user already exists in the database. 
         if(userExists)
            return res.status(400).json(userRegistrationResponse(null,false,"User already registered with the emailID"));
 
@@ -39,8 +38,8 @@ const registerUser = async (req, res, next) => {
          console.log(newUser);
          res.status(201).json(userRegistrationRepsonse(newUser,true,"User Registered successfully"));
 
-        //Need another function that generates activation link.
         const link = await generateActivationLink(emailID); 
+        //save link to the database.
         
         sendActivationEmail(emailID, link, userName);
 
