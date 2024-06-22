@@ -37,6 +37,7 @@
     "node.js": "^0.0.1-security",
     "pg": "^8.11.3",
     "winston": "^3.10.0"
+
   },
   "devDependencies": {
     "nodemon": "^3.0.1"
