@@ -7,6 +7,8 @@ import userRoutes from './user.js';
 const router = express.Router();
 
 // Use imported routes
-router.use('/instruments', instrumentRoutes);
-router.use('/users', userRoutes);
+router.use('/', instrumentRoutes);
+
+
+
 export default router;
