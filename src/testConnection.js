@@ -2,11 +2,11 @@ import pg from 'pg';
 const {Pool} = pg;
 
 const pool = new Pool({
-    host: 'bubble.db.elephantsql.com',       // You can change this to your host
+    host: 'xxxxxxx',       // You can change this to your host
     port: 5432,              // Change to your port if different
-    user: 'aciknpsz',   // Your PostgreSQL username
-    password: 'G4bbazVGla6JD1JrIPKRcPYMlh7lIldR',   // Your PostgreSQL password
-    database: 'aciknpsz'    // Your database name
+    user: 'sdfgfdsgdsfg',   // Your PostgreSQL username
+    password: 'dsfgsdfgsd',   // Your PostgreSQL password
+    database: 'sgdf'    // Your database name
 });
 
 
