@@ -36,7 +36,7 @@ const registerUser = async (req, res, next) => {
         console.log("User Registration Successful!!");
 
          console.log(newUser);
-         res.status(201).json(userRegistrationRepsonse(newUser,true,"User Registered successfully"));
+         res.status(201).json(userRegistrationResponse(newUser,true,"User Registered successfully"));
 
         const link = await generateActivationLink(emailID); 
         //save link to the database.

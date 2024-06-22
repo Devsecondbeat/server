@@ -22,3 +22,30 @@ export const sendActivationEmail = async (recipientEmail, activationLink, userNa
     .then(() => console.log('Activation email sent successfully'))
     .catch(error => console.error('Error sending activation email:', error));
 };
+
+export const sendResetPasswordCode = async (recipientEmail,resetPasswordCode) => {
+  const msg = {
+    to: recipientEmail,
+    from: 'support@secondbeat.in', // Use the email address you verified with SendGrid
+    subject: 'Activate Your Account - Second Beat',
+    html: `
+      <p>Dear User,</p>
+       
+        <p>We received a request to reset your password for your Second Beat account. Please use the verification code below to proceed with the password reset process:</p>
+        <div>${resetPasswordCode}</div>
+        <p>If you did not request a password reset, please ignore this email or contact our support team if you have any concerns.</p>
+        <p>To reset your password, follow these steps:</p>
+        <ol>
+            <li>Enter the verification code on the password reset page.</li>
+            <li>Choose a new password.</li>
+            <li>Confirm your new password.</li>
+        </ol>
+        <p>For security reasons, this code will expire in 15 minutes. If you do not use the code within this time frame, you will need to request a new one.</p>
+        <p>Thank you,<br>The Second Beat Team</p>
+    `,
+  };
+  
+  sgMail.send(msg)
+    .then(() => console.log('Reset Password code email sent successfully'))
+    .catch(error => console.error('Error sending Reset Password Code email:', error));
+};
