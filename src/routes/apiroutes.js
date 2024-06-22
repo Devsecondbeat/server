@@ -1,5 +1,8 @@
 import express from 'express';
 import instrumentRoutes from './usedinstruments.js';
+import userRoutes from './user.js';
+
+
 
 const router = express.Router();
 

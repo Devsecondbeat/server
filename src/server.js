@@ -6,10 +6,16 @@ import routes from './routes/apiroutes.js';
 
 const app = express();
 const PORT = process.env.PORT;
+const authenticateToken = () => {};
+
+// To display the global variables defined in codeGen js file. 
 
 //app.use(helmet());
 // Middleware to parse JSON bodies
 app.use(express.json());
+
+// parse incoming Request Object if object, with nested objects, or generally any type.
+app.use(express.urlencoded({ extended: true }));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Hello, this is the root API endpoint!' });
