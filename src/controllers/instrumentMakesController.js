@@ -1,5 +1,4 @@
-import {getInstrumentMakes} from '../models/instrument_makes_model.js';
-import {createInstrumentAds, getInstrumentAds, getInstrumentAdsbyUser, updateInstrumentAds, deleteInstrumentAds} from '../models/instrument_makes.js';
+import {getInstrumentMakes,createInstrumentAds, getInstrumentAds, getInstrumentAdsbyUser, updateInstrumentAds, deleteInstrumentAds} from '../models/instrument_makes.js';
 
 
 export const getinstrumentMakes = async (req, res, next) => {
