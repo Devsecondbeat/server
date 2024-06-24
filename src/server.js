@@ -21,8 +21,7 @@ app.get('/', (req, res) => {
   res.json({ message: 'Hello, this is the root API endpoint!' });
 });
 // API routes
-app.use('/instruments', routes);
-
+app.use('/api/v1',routes);
 // Start serverls
 app.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);

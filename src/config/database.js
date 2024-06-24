@@ -6,7 +6,7 @@ const dbConfig = {
   port: process.env.DBPORT,
   host: process.env.DBHOST,
   ssl:{
-    ca : fs.readFileSync(process.env.certPath).toString()
+    ca : fs.readFileSync(process.env.CERTPATH).toString()
   }
 };
 export {dbConfig};
