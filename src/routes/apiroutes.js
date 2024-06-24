@@ -7,7 +7,6 @@ import { verifyToken } from '../middleware/authMiddleware.js';
 const router = express.Router();
 
 // Use imported routes
-// Use imported routes
 router.use('/instruments', verifyToken,instrumentRoutes);
 router.use('/users', userRoutes);
 
