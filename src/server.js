@@ -21,6 +21,7 @@ app.get('/', (req, res) => {
   res.json({ message: 'Hello, this is the root API endpoint!' });
 });
 // API routes
+
 app.use('/api/v1', routes);
 
 // Start serverls
