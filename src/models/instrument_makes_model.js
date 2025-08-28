@@ -44,7 +44,7 @@ const getInstrumentAds = async () => {
     }
 }
 
-const getInstrumentAdsbyUser = async (req, res) => {
+const getInstrumentAdsByUser = async (req, res) => {
     try{
         //get all instrument ads for the user
         const user_id = parseInt(req.params.id);
@@ -90,5 +90,5 @@ const deleteInstrumentAds = async (req, res) => {
     }
 }
 
-export {getInstrumentMakes, createInstrumentAds, getInstrumentAds, getInstrumentAdsbyUser, updateInstrumentAds, deleteInstrumentAds};
+export {getInstrumentMakes, createInstrumentAds, getInstrumentAds, getInstrumentAdsByUser, updateInstrumentAds, deleteInstrumentAds};
 

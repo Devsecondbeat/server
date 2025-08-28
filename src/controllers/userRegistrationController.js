@@ -1,49 +1,46 @@
-import {userRegistration, checkifUserExists} from '../models/user_registration_model.js';
+import {userRegistration, checkIfUserExists} from '../models/user_registration_model.js';
 import {sendActivationEmail} from '../Utils/sendEmail.js';
 import { generateEncryptedPassword, generateActivationLink } from '../Utils/codeGen.js';
 
-const userRegistrationResponse = (userID,success, message) => {
-
-    return{
-        ID:userID,
-        success:success,
-        message:message
-    }
-}
-
+const userRegistrationResponse = (userId,success, message) => {
+    return {
+        userId: userId,
+        success: success,
+        message: message
+    };
+};
 
 /*
 Is this the right way to use async and await. 
 */
 
 const registerUser = async (req, res, next) => {
-
     try{
-        console.log("Register User request");
-        const {firstName, lastName, phoneNumber, emailID, password} = req.body;
-
-        const userExists = await checkifUserExists(emailID);
-        console.log(userExists);
-        
+        console.log("registerUser request");
+        const {firstName, lastName, phoneNumber, emailId, password} = req.body;
+        console.log(firstName, lastName, phoneNumber, emailId, password);
+        const userExists = await checkIfUserExists(emailId);
         if(userExists)
-           return res.status(400).json(userRegistrationResponse(null,false,"User already registered with the emailID"));
-
+        {
+            return res.status(400).json(userRegistrationResponse(null,false,"User already exists"));
+        }
         const userName=`${firstName} ${lastName}`;
-
+        console.log(userName);
         const encryptedPassword = await generateEncryptedPassword(password);
-               
-        const newUser = await userRegistration(firstName,lastName,phoneNumber,emailID,encryptedPassword);
-        console.log("User Registration Successful!!");
-
-         console.log(newUser);
-         res.status(201).json(userRegistrationResponse(newUser,true,"User Registered successfully"));
-
-        const link = await generateActivationLink(emailID); 
-        //save link to the database.
-        
-        sendActivationEmail(emailID, link, userName);
-
-
+        console.log(encryptedPassword);
+        const newUser = await userRegistration(firstName,lastName,phoneNumber,emailId,encryptedPassword);
+        console.log(newUser);
+        if(newUser)
+        {
+            const link = await generateActivationLink(emailId);
+            console.log(link);
+            await sendActivationEmail(emailId, link, userName);
+            res.status(201).json(userRegistrationResponse(newUser,true,"User registered successfully"));
+        }
+        else
+        {
+            res.status(500).json(userRegistrationResponse(null,false,"User registration failed"));
+        }
     }
     catch(error){
         next(error);

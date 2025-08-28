@@ -7,12 +7,12 @@ const pool = new Pool(dbConfig);
 
 //Database save, activation code generation, send email code generation. 
 
-export const userRegistration = async (firstName, lastName, phoneNumber,emailID,password) => {
+export const userRegistration = async (firstName, lastName, phoneNumber,emailId,password) => {
 //
 
 try{
           const query = `insert into users(first_name,last_name,contact_number,email,encrypted_password) values($1,$2,$3,$4,$5) RETURNING id`;
-          const values = [firstName, lastName, phoneNumber,emailID, password];
+          const values = [firstName, lastName, phoneNumber,emailId, password];
           const result = await pool.query(query, values);
         
 
@@ -32,12 +32,12 @@ try{
       }
 }
 
-export const checkifUserExists = async (emailID) => {
+export const checkIfUserExists = async (emailId) => {
 
     try{
 
         const checkUserExistsQuery = `select * from users where email=$1`;
-        const values =[emailID];
+        const values =[emailId];
         const result = await pool.query(checkUserExistsQuery, values);
         console.log(`result:${result.rows.length}`);
         return result.rows.length > 0;

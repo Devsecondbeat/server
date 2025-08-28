@@ -40,7 +40,7 @@ export const  generateActivationLink = (userEmail) => {
     //save the activation code into the database. This needs to be done at the controller level, utilities needs to just have helper functions. 
     setActivationTokenAndExpiry(token, expiry, userEmail);
 
-    const activationLink = `https://${env.hostname}/api/v1/users/activateAccount?emailID=${encodeURIComponent(userEmail)}&token=${encodeURIComponent(token)}}`;
+    const activationLink = `https://${env.hostname}/api/v1/users/activateAccount?emailId=${encodeURIComponent(userEmail)}&token=${encodeURIComponent(token)}}`;
     return activationLink;
   });
 }
@@ -64,11 +64,11 @@ export const comparePassword = (userPassword, hashPassword) => {
 }
 
 
-export const genAuthToken = (emailID) => {
+export const genAuthToken = (emailId) => {
 
 //generate token expires in 30mins. 
   
-let token = jwt.sign({emailID:emailID},process.env.Token_Secret_Key,{ expiresIn: 3600 });
+let token = jwt.sign({emailId:emailId},process.env.JWT_SECRET,{ expiresIn: 3600 });
 
 console.log(token);
 return token;
@@ -76,14 +76,14 @@ return token;
 }
 
 
-export const validateAuthToken  = (token, emailID) => {
+export const validateAuthToken  = (token, emailId) => {
   
   if(token)
   {
-    const decode = jwt.verify(token,process.env.Token_Secret_Key);
+    const decode = jwt.verify(token,process.env.JWT_SECRET);
 
     console.log(decode);
-    if(decode.emailID === emailID)
+    if(decode.emailId === emailId)
       return true;
 
   }

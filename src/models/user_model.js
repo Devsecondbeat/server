@@ -5,12 +5,12 @@ const pool = new Pool(dbConfig);
 
  
 
-export const gethashedPwdByEmailID = async (userEmailID) => {
+export const getHashedPwdByEmailId = async (userEmailId) => {
 //
 
 try{
           const query = `select encrypted_password from users where email=$1;`;
-          const values = [userEmailID];
+          const values = [userEmailId];
           const result = await pool.query(query, values);
         
           if (result.rowCount > 0) {
@@ -31,7 +31,7 @@ try{
 };
 
 
-export const setActivationTokenAndExpiry = async (token,expiry,emailID) => 
+export const setActivationTokenAndExpiry = async (token,expiry,emailId) => 
     
 {
 //
@@ -44,7 +44,7 @@ try{
                             WHERE email = $3
                         `;
 
-                await pool.query(query, [token, expiry, emailID]);
+                await pool.query(query, [token, expiry, emailId]);
     
       }
       catch(error)
@@ -54,15 +54,15 @@ try{
 }
 
 
-export const getActivationTokenAndExpiryByEmailID = async (emailID) => {
+export const getActivationTokenAndExpiryByEmailId = async (emailId) => {
 //
 
   try{
                 const query = `
                             SELECT activation_token, activation_token_expiry from users where email=$1;
                         `;
-                console.log(emailID);
-                const values = [emailID];
+                console.log(emailId);
+                const values = [emailId];
                const result = await pool.query(query, values);
                if (result.rowCount > 0) {
                     console.log('Retrieved token and expiry_date from users table');
@@ -77,11 +77,11 @@ export const getActivationTokenAndExpiryByEmailID = async (emailID) => {
       }
       catch(error)
       {
-          console.error('Invalid Emaild');
+          console.error('Invalid EmailId');
       }
 }
 
-export const setAccountActivation = async (emailID,activationstatus) => {
+export const setAccountActivation = async (emailId,activationStatus) => {
 //
 
   try{
@@ -94,7 +94,7 @@ export const setAccountActivation = async (emailID,activationstatus) => {
                         `;
                         
 
-               const result = await pool.query(query, [activationstatus,emailID]);
+               const result = await pool.query(query, [activationStatus,emailId]);
                
       }
       catch(error)
@@ -103,7 +103,7 @@ export const setAccountActivation = async (emailID,activationstatus) => {
       }
 }
 
-export const setPasswordCodeWithExpiry = async (token,expiry,emailID) => 
+export const setPasswordCodeWithExpiry = async (token,expiry,emailId) => 
     
 {
 //
@@ -116,7 +116,7 @@ try{
                             WHERE email = $3
                         `;
 
-                await pool.query(query, [token, expiry, emailID]);
+                await pool.query(query, [token, expiry, emailId]);
     
       }
       catch(error)

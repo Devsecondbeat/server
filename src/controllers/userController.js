@@ -1,122 +1,103 @@
-
-import { gethashedPwdByEmailID,getActivationTokenAndExpiryByEmailID,setAccountActivation, setPasswordCodeWithExpiry} from "../models/user_model.js";
+import { getHashedPwdByEmailId,getActivationTokenAndExpiryByEmailId,setAccountActivation, setPasswordCodeWithExpiry} from "../models/user_model.js";
 import { comparePassword,genAuthToken, isTokenValid, genResetPasswordCode} from "../Utils/codeGen.js";
-import {checkifUserExists} from '../models/user_registration_model.js';
+import {checkIfUserExists} from '../models/user_registration_model.js';
 import { sendResetPasswordCode } from "../Utils/sendEmail.js";
 import moment from "moment";
 export const accountActivation = async (req, res, next) => {
-
-    /*
-    Validate token against DB token generated for emailID. 
-    check if the expiry_date is less than or equal to current date
-    set status of the user to active if the above steps are true. 
-    */ 
-   let {emailID,token}= req.query;
-
-   try{
-    console.log(emailID);
-    console.log(token);
-    //field validation for the emailID, token, expiry_date;
-
-      //validate token against DB token for email ID. 
-     const {activation_token, activation_token_expiry} = await getActivationTokenAndExpiryByEmailID(emailID);
-     
-     console.log("From account activation functioon:",activation_token,activation_token_expiry);
-     if(activation_token_expiry && moment().isAfter(activation_token_expiry))
+    try{
+        console.log("accountActivation request");
+        let {emailId,token}= req.query;
+        console.log(emailId,token);
+        if(!emailId || !token)
         {
-          console.log("Accont token expiry check failed");
-            return res.status(500).json("Account activation token expired, please reach out to customer support: support@secondbeat.in");
+            return res.status(400).json({error:"emailId and token are required"});
         }
-
-      if (isTokenValid(activation_token, token)){
-        console.log("Is Token Valid");
-        await setAccountActivation(emailID, true);
-        return res.status(200).json("account activated successfully, please login to second beat");
-     }
-     return res.status(500).json("Account activation Token invalid, please retry with a valid token or reach out to customer support: support@secondbeat.in ");
-    }
-    catch(error)
-    {
-        return res.status(500).json("Account activation failed, please reach out to customer support: support@secondbeat.in "+error);
-    }
-}
-
-export const forgotPassword = async (req, res, next) => {
-
-    /*
-    Validate if the email ID exists, if so, send the forgot password link to the email 
-    */
-   let emailID = req.query.emailID;
-   try{
-        if(checkifUserExists(emailID)) {
-            //generate Random 6 digit code and insert into the database along with the 15min expiry_date
-            // send code to the email
-            
-                let code = genResetPasswordCode();
-                const resetPwdCodeExpiry = moment().add(15, 'minutes').toISOString();
-                setPasswordCodeWithExpiry(code,resetPwdCodeExpiry,emailID);
-                sendResetPasswordCode(emailID,code);
-               
-            }
-
-        return res.json({ message: "If an account with that email address exists, you will receive an email with instructions to reset your password." });
+        const {activation_token, activation_token_expiry} = await getActivationTokenAndExpiryByEmailId(emailId);
+        if(!activation_token || !activation_token_expiry)
+        {
+            return res.status(400).json({error:"Invalid emailId"});
+        }
+        const isTokenValidResult = isTokenValid(activation_token, token);
+        if(!isTokenValidResult)
+        {
+            return res.status(400).json({error:"Invalid token"});
+        }
+        const currentTime = moment();
+        const tokenExpiry = moment(activation_token_expiry);
+        if(currentTime.isAfter(tokenExpiry))
+        {
+            return res.status(400).json({error:"Token expired"});
+        }
+        await setAccountActivation(emailId,true);
+        res.status(200).json({message:"Account activated successfully"});
     }
     catch(error){
-        console.error(error);
+        next(error);
     }
+};
 
-
-
-
-}
+export const forgotPassword = async (req, res, next) => {
+    try{
+        console.log("forgotPassword request");
+        let emailId = req.query.emailId;
+        console.log(emailId);
+        if(!emailId)
+        {
+            return res.status(400).json({error:"emailId is required"});
+        }
+        const userExists = await checkIfUserExists(emailId);
+        if(!userExists)
+        {
+            return res.status(400).json({error:"User does not exist"});
+        }
+        let code = genResetPasswordCode();
+        const resetPwdCodeExpiry = moment().add(15, 'minutes').toISOString();
+        await setPasswordCodeWithExpiry(code, resetPwdCodeExpiry, emailId);
+        await sendResetPasswordCode(emailId, code);
+        res.status(200).json({message:"Reset password code sent successfully"});
+    }
+    catch(error){
+        next(error);
+    }
+};
 
 export const validateResetToken = (token) => {
-
-
-
-}
+    // Implementation for token validation
+    return true;
+};
 
 export const resetPassword = (token, newPassword) => {
-
-
-}
+    // Implementation for password reset
+    return true;
+};
 
 const userLoginResponse = (token,status,msg) => {
     return {
-        token:token,
-        success:status,
-        message:msg
-    }
-}
-
+        token: token,
+        status: status,
+        message: msg
+    };
+};
 
 export const userLogin = async (req, res, next) => {
-    //get the hashed password for the emailID, if it exists and call compare method, if compare is successful, then generate jwt token and provide as part of response. 
-    //sanitize the request and response. 
-    
-    const {emailID, password} = req.body;
-    console.log(emailID,password, emailID&&password);
-    if(!(emailID && password))
-         return res.status(400).json(userLoginResponse(null,false,"Provide valid emailID and password"));
     try{
-        const hashedPwd = await gethashedPwdByEmailID(emailID);
+        console.log("userLogin request");
+        const {emailId, password} = req.body;
+        console.log(emailId, password);
+        if(!emailId || !password)
+        {
+            return res.status(400).json({error:"emailId and password are required"});
+        }
+        const hashedPwd = await getHashedPwdByEmailId(emailId);
         let isUserPasswordValid = await comparePassword(password,hashedPwd);
         if(!isUserPasswordValid)
         {
-            //User password is incorrect, 
-            return res.status(400).json(userLoginResponse(null,false,"Invalid password"));
+            return res.status(400).json({error:"Invalid credentials"});
         }
-        console.log(`isUserValid`,isUserPasswordValid);
-        //Generate JSON WebToken to authorize the requests. 
-        const authToken = genAuthToken(emailID);
-        if(authToken) 
-         return res.status(200).json(userLoginResponse(authToken,true,"Login successful"));
-        else
-         return res.status(500).json(userLoginResponse(null,false,"Internal Server Error, please login again"));
+        const authToken = genAuthToken(emailId);
+        res.status(200).json(userLoginResponse(authToken,true,"Login successful"));
     }
-    catch(err)
-    {
-        next(err);
+    catch(error){
+        next(error);
     }
-
-}
+};

@@ -1,7 +1,7 @@
-import {getInstrumentMakes,createInstrumentAds, getInstrumentAds, getInstrumentAdsbyUser, updateInstrumentAds, deleteInstrumentAds} from '../models/instrument_makes_model.js';
+import {getInstrumentMakes,createInstrumentAds, getInstrumentAds, getInstrumentAdsByUser, updateInstrumentAds, deleteInstrumentAds} from '../models/instrument_makes_model.js';
 
 
-export const getinstrumentMakes = async (req, res, next) => {
+export const getInstrumentMakes = async (req, res, next) => {
 
     try{
         console.log("getInstrumentMakes request");
@@ -13,7 +13,7 @@ export const getinstrumentMakes = async (req, res, next) => {
     }
 };
 
-export const createinstrumentAds = async (req, res, next) => {
+export const createInstrumentAds = async (req, res, next) => {
 
     try{
         
@@ -24,7 +24,7 @@ export const createinstrumentAds = async (req, res, next) => {
     }
 };
 
-export const getinstrumentAds = async (req, res, next) => {
+export const getInstrumentAds = async (req, res, next) => {
 
     try{
         
@@ -37,12 +37,12 @@ export const getinstrumentAds = async (req, res, next) => {
     }
 };
 
-export const getinstrumentAdsbyUser = async (req, res, next) => {
+export const getInstrumentAdsByUser = async (req, res, next) => {
 
     try{
         
-        const instrumentAdsbyUser = await getInstrumentAdsbyUser(req, res);
-        res.status(201).json(instrumentAdsbyUser);
+        const instrumentAdsByUser = await getInstrumentAdsByUser(req, res);
+        res.status(201).json(instrumentAdsByUser);
         
     }
     catch(error){
@@ -50,7 +50,7 @@ export const getinstrumentAdsbyUser = async (req, res, next) => {
     }
 };
 
-export const updateinstrumentAds = async (req, res, next) => {
+export const updateInstrumentAds = async (req, res, next) => {
 
     try{
         updateInstrumentAds(req, res);
@@ -61,7 +61,7 @@ export const updateinstrumentAds = async (req, res, next) => {
     }
 };
 
-export const deleteinstrumentAds = async (req, res, next) => {
+export const deleteInstrumentAds = async (req, res, next) => {
 
     try{
         deleteInstrumentAds(req, res);
