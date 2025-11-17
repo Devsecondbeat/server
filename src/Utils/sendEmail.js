@@ -1,4 +1,5 @@
 import sgMail from '@sendgrid/mail';
+
 sgMail.setApiKey(process.env.SENDGRID_API_KEY);
 
 export const sendActivationEmail = async (recipientEmail, activationLink, userName) => {
@@ -17,13 +18,14 @@ export const sendActivationEmail = async (recipientEmail, activationLink, userNa
       <p>Best regards,<br/>The Second Beat Team</p>
     `,
   };
-  
-  sgMail.send(msg)
+
+  sgMail
+    .send(msg)
     .then(() => console.log('Activation email sent successfully'))
-    .catch(error => console.error('Error sending activation email:', error));
+    .catch((error) => console.error('Error sending activation email:', error));
 };
 
-export const sendResetPasswordCode = async (recipientEmail,resetPasswordCode) => {
+export const sendResetPasswordCode = async (recipientEmail, resetPasswordCode) => {
   const msg = {
     to: recipientEmail,
     from: 'support@secondbeat.in', // Use the email address you verified with SendGrid
@@ -44,8 +46,9 @@ export const sendResetPasswordCode = async (recipientEmail,resetPasswordCode) =>
         <p>Thank you,<br>The Second Beat Team</p>
     `,
   };
-  
-  sgMail.send(msg)
+
+  sgMail
+    .send(msg)
     .then(() => console.log('Reset Password code email sent successfully'))
-    .catch(error => console.error('Error sending Reset Password Code email:', error));
+    .catch((error) => console.error('Error sending Reset Password Code email:', error));
 };
