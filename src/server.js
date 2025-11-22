@@ -1,15 +1,27 @@
 import express from 'express';
 import helmet from 'helmet';
+import cors from 'cors';
 import {} from 'dotenv/config';
 import routes from './routes/apiroutes.js';
+import logger from './config/logger.js';
 
 const app = express();
-const PORT = process.env.PORT;
-const authenticateToken = () => {};
+const { PORT } = process.env;
 
 // To display the global variables defined in codeGen js file.
 
-//app.use(helmet());
+app.use(helmet());
+
+// CORS configuration
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || '*',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
+
 // Middleware to parse JSON bodies
 app.use(express.json());
 
@@ -19,11 +31,28 @@ app.use(express.urlencoded({ extended: true }));
 app.get('/', (req, res) => {
   res.json({ message: 'Hello, this is the root API endpoint!' });
 });
-// API routes
 
+// Health check endpoints
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'healthy',
+    timestamp: new Date().toISOString(),
+    uptime: process.uptime(),
+  });
+});
+
+app.get('/ready', (req, res) => {
+  // Add database connection check here if needed
+  res.status(200).json({
+    status: 'ready',
+    timestamp: new Date().toISOString(),
+  });
+});
+
+// API routes
 app.use('/api/v1', routes);
 
-// Start serverls
+// Start server
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  logger.info(`Server is running on port ${PORT}`);
 });
