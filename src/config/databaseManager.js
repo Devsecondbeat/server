@@ -43,7 +43,17 @@ const buildSupabaseConfig = () => {
   if (sslMode === 'disable') {
     config.ssl = false;
   }
-
+  else{
+  try {
+    config.ssl = {
+      ca: fs.readFileSync(process.env.CERTPATH).toString(),
+      rejectUnauthorized: true,
+    };
+  } catch (error) {
+    logger.warn('Failed to load SSL certificate, proceeding without SSL', { error: error.message });
+    config.ssl = false;
+  }
+  }
   return config;
 };
 
@@ -124,8 +134,22 @@ const initializeConnection = async (type, maxRetries = null) => {
   }
 
   // Validate required configuration
-  if (!config.host || !config.database || !config.user || !config.password) {
-    logger.warn(`Missing required configuration for ${type} connection`);
+  const missingFields = [];
+  if (!config.host) {
+    missingFields.push(type === 'supabase' ? 'SUPABASE_DB_HOST' : 'DBHOST');
+  }
+  if (!config.database) {
+    missingFields.push(type === 'supabase' ? 'SUPABASE_DB_NAME' : 'DATABASENAME');
+  }
+  if (!config.user) {
+    missingFields.push(type === 'supabase' ? 'SUPABASE_DB_USER' : 'DBUSERNAME');
+  }
+  if (!config.password) {
+    missingFields.push(type === 'supabase' ? 'SUPABASE_DB_PASSWORD' : 'DBPASSWORD');
+  }
+
+  if (missingFields.length > 0) {
+    logger.warn(`Missing required configuration for ${type} connection. Missing environment variables: ${missingFields.join(', ')}`);
     return null;
   }
 
@@ -138,10 +162,12 @@ const initializeConnection = async (type, maxRetries = null) => {
   };
 
   for (let attempt = 1; attempt <= retries; attempt += 1) {
+    let pool = null;
     try {
       logger.info(`Attempting ${type} connection (attempt ${attempt}/${retries})`);
+      logger.debug(`Connecting to: ${config.host}:${config.port}/${config.database} as ${config.user}`);
 
-      const pool = new Pool(poolConfig);
+      pool = new Pool(poolConfig);
       const isHealthy = await testConnectionHealth(
         pool,
         parseInt(process.env.DB_CONNECTION_TIMEOUT || '5000', 10),
@@ -153,10 +179,42 @@ const initializeConnection = async (type, maxRetries = null) => {
       }
 
       // If health check failed, close the pool
-      await pool.end();
+      if (pool) {
+        await pool.end().catch(() => {});
+      }
       logger.warn(`${type} connection health check failed on attempt ${attempt}`);
     } catch (error) {
-      logger.warn(`${type} connection attempt ${attempt} failed`, { error: error.message });
+      // Clean up pool if it was created
+      if (pool) {
+        await pool.end().catch(() => {});
+      }
+
+      // Provide detailed error information for DNS/connection issues
+      if (error.code === 'ENOTFOUND' || error.message.includes('getaddrinfo')) {
+        logger.error(`[${type.toUpperCase()}] DNS Resolution Failed`);
+        logger.error(`  Hostname: ${config.host}`);
+        logger.error(`  Error: ${error.message}`);
+        logger.error(`  Possible causes:`);
+        logger.error(`    1. Supabase project is paused (free tier pauses after inactivity)`);
+        logger.error(`       → Check your Supabase dashboard and resume the project if paused`);
+        logger.error(`    2. Incorrect hostname in SUPABASE_DB_HOST`);
+        logger.error(`       → Verify in Supabase: Settings > Database > Connection string`);
+        logger.error(`    3. Network/DNS connectivity issues`);
+        logger.error(`       → Check your internet connection`);
+        logger.error(`    4. Wrong hostname format`);
+        logger.error(`       → Direct connection: db.xxxxx.supabase.co`);
+        logger.error(`       → Connection pooling: aws-0-us-east-1.pooler.supabase.com`);
+      } else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
+        logger.error(`[${type.toUpperCase()}] Connection Timeout/Refused`);
+        logger.error(`  Host: ${config.host}:${config.port}`);
+        logger.error(`  Error: ${error.message}`);
+        logger.error(`  Check if the host and port are correct`);
+      } else {
+        logger.warn(`${type} connection attempt ${attempt} failed: ${error.message}`);
+        if (error.code) {
+          logger.debug(`  Error code: ${error.code}`);
+        }
+      }
     }
 
     // Exponential backoff: 1s, 2s, 4s
