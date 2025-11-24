@@ -44,7 +44,6 @@ export const setActivationTokenAndExpiry = async (token, expiry, emailID) => {
 export const getActivationTokenAndExpiryByEmailID = async (emailID) => {
   try {
     const query = 'SELECT activation_token, activation_token_expiry from users where email=$1;';
-    console.log(emailID);
     const values = [emailID];
     const pool = getPool();
     const result = await pool.query(query, values);

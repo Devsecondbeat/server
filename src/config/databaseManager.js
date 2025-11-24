@@ -33,27 +33,29 @@ const buildSupabaseConfig = () => {
     database: process.env.SUPABASE_DB_NAME || 'postgres',
     user: process.env.SUPABASE_DB_USER || 'postgres',
     password: process.env.SUPABASE_DB_PASSWORD,
-    ssl: {
-      rejectUnauthorized: false,
-    },
   };
 
   // Handle SSL mode
   const sslMode = process.env.SUPABASE_DB_SSL_MODE || 'require';
   if (sslMode === 'disable') {
     config.ssl = false;
-  }
-  else{
-  try {
+  } else if (process.env.CERTPATH) {
+    try {
+      config.ssl = {
+        ca: fs.readFileSync(process.env.CERTPATH).toString(),
+        rejectUnauthorized: true,
+      };
+    } catch (error) {
+      logger.warn('Failed to load SSL certificate, proceeding without SSL', { error: error.message });
+      config.ssl = false;
+    }
+  } else {
+    // Default SSL for Supabase: accept server certs without CA verification
     config.ssl = {
-      ca: fs.readFileSync(process.env.CERTPATH).toString(),
-      rejectUnauthorized: true,
+      rejectUnauthorized: false,
     };
-  } catch (error) {
-    logger.warn('Failed to load SSL certificate, proceeding without SSL', { error: error.message });
-    config.ssl = false;
   }
-  }
+
   return config;
 };
 
@@ -397,7 +399,7 @@ const shutdown = async () => {
 // Initialize on module load
 // Note: Initialization is async, but we don't block module export
 // The connection will be established in the background
-// If initialization fails, it will be retried on first getPool() call
+// If initialization fails, periodic health checks will attempt to reconnect
 initializeConnectionManager().catch((error) => {
   logger.error('Failed to initialize database connection manager on startup', { error: error.message });
   // Don't throw - allow server to start and retry on first database operation

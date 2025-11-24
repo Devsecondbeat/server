@@ -15,9 +15,24 @@ const dbConfig = {
   password: process.env.DBPASSWORD,
   port: process.env.DBPORT,
   host: process.env.DBHOST,
-  ssl: process.env.CERTPATH ? {
-    ca: fs.readFileSync(process.env.CERTPATH).toString(),
-  } : false,
+  ssl: (() => {
+    if (!process.env.CERTPATH) {
+      return false;
+    }
+    try {
+      const certPath = process.env.CERTPATH;
+      if (!fs.existsSync(certPath)) {
+        console.error(`[Database Config] SSL certificate file not found at path: ${certPath}`);
+        return false;
+      }
+      const certContent = fs.readFileSync(certPath).toString();
+      return { ca: certContent };
+    } catch (error) {
+      console.error(`[Database Config] Failed to read SSL certificate from path: ${process.env.CERTPATH}`);
+      console.error(`[Database Config] Error: ${error.message}`);
+      return false;
+    }
+  })(),
 };
 
 // Export connection manager functions
