@@ -10,7 +10,7 @@ const logFormat = winston.format.combine(
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.errors({ stack: true }),
   winston.format.splat(),
-  winston.format.json()
+  winston.format.json(),
 );
 
 // Define console format for development
@@ -18,11 +18,12 @@ const consoleFormat = winston.format.combine(
   winston.format.colorize(),
   winston.format.timestamp({ format: 'YYYY-MM-DD HH:mm:ss' }),
   winston.format.printf(
-    ({ timestamp, level, message, ...metadata }) =>
-      `${timestamp} [${level}]: ${message} ${
-        Object.keys(metadata).length ? JSON.stringify(metadata, null, 2) : ''
-      }`
-  )
+    ({
+      timestamp, level, message, ...metadata
+    }) => `${timestamp} [${level}]: ${message} ${
+      Object.keys(metadata).length ? JSON.stringify(metadata, null, 2) : ''
+    }`,
+  ),
 );
 
 // Create logger instance

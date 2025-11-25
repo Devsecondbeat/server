@@ -46,7 +46,9 @@ const buildSupabaseConfig = () => {
         rejectUnauthorized: true,
       };
     } catch (error) {
-      logger.warn('Failed to load SSL certificate, proceeding without SSL', { error: error.message });
+      logger.warn('Failed to load SSL certificate, proceeding without SSL', {
+        error: error.message,
+      });
       config.ssl = false;
     }
   } else {
@@ -80,7 +82,9 @@ const buildPostgreSQLConfig = () => {
         rejectUnauthorized: true,
       };
     } catch (error) {
-      logger.warn('Failed to load SSL certificate, proceeding without SSL', { error: error.message });
+      logger.warn('Failed to load SSL certificate, proceeding without SSL', {
+        error: error.message,
+      });
       config.ssl = false;
     }
   } else {
@@ -151,7 +155,9 @@ const initializeConnection = async (type, maxRetries = null) => {
   }
 
   if (missingFields.length > 0) {
-    logger.warn(`Missing required configuration for ${type} connection. Missing environment variables: ${missingFields.join(', ')}`);
+    logger.warn(
+      `Missing required configuration for ${type} connection. Missing environment variables: ${missingFields.join(', ')}`,
+    );
     return null;
   }
 
@@ -167,7 +173,9 @@ const initializeConnection = async (type, maxRetries = null) => {
     let pool = null;
     try {
       logger.info(`Attempting ${type} connection (attempt ${attempt}/${retries})`);
-      logger.debug(`Connecting to: ${config.host}:${config.port}/${config.database} as ${config.user}`);
+      logger.debug(
+        `Connecting to: ${config.host}:${config.port}/${config.database} as ${config.user}`,
+      );
 
       pool = new Pool(poolConfig);
       const isHealthy = await testConnectionHealth(
@@ -196,21 +204,21 @@ const initializeConnection = async (type, maxRetries = null) => {
         logger.error(`[${type.toUpperCase()}] DNS Resolution Failed`);
         logger.error(`  Hostname: ${config.host}`);
         logger.error(`  Error: ${error.message}`);
-        logger.error(`  Possible causes:`);
-        logger.error(`    1. Supabase project is paused (free tier pauses after inactivity)`);
-        logger.error(`       → Check your Supabase dashboard and resume the project if paused`);
-        logger.error(`    2. Incorrect hostname in SUPABASE_DB_HOST`);
-        logger.error(`       → Verify in Supabase: Settings > Database > Connection string`);
-        logger.error(`    3. Network/DNS connectivity issues`);
-        logger.error(`       → Check your internet connection`);
-        logger.error(`    4. Wrong hostname format`);
-        logger.error(`       → Direct connection: db.xxxxx.supabase.co`);
-        logger.error(`       → Connection pooling: aws-0-us-east-1.pooler.supabase.com`);
+        logger.error('  Possible causes:');
+        logger.error('    1. Supabase project is paused (free tier pauses after inactivity)');
+        logger.error('       → Check your Supabase dashboard and resume the project if paused');
+        logger.error('    2. Incorrect hostname in SUPABASE_DB_HOST');
+        logger.error('       → Verify in Supabase: Settings > Database > Connection string');
+        logger.error('    3. Network/DNS connectivity issues');
+        logger.error('       → Check your internet connection');
+        logger.error('    4. Wrong hostname format');
+        logger.error('       → Direct connection: db.xxxxx.supabase.co');
+        logger.error('       → Connection pooling: aws-0-us-east-1.pooler.supabase.com');
       } else if (error.code === 'ETIMEDOUT' || error.code === 'ECONNREFUSED') {
         logger.error(`[${type.toUpperCase()}] Connection Timeout/Refused`);
         logger.error(`  Host: ${config.host}:${config.port}`);
         logger.error(`  Error: ${error.message}`);
-        logger.error(`  Check if the host and port are correct`);
+        logger.error('  Check if the host and port are correct');
       } else {
         logger.warn(`${type} connection attempt ${attempt} failed: ${error.message}`);
         if (error.code) {
@@ -221,7 +229,7 @@ const initializeConnection = async (type, maxRetries = null) => {
 
     // Exponential backoff: 1s, 2s, 4s
     if (attempt < retries) {
-      const delay = Math.pow(2, attempt - 1) * 1000;
+      const delay = 2 ** (attempt - 1) * 1000;
       await new Promise((resolve) => setTimeout(resolve, delay));
     }
   }
@@ -275,8 +283,8 @@ const startHealthChecks = () => {
   }
 
   connectionState.healthCheckInterval = setInterval(async () => {
-    const currentPool = connectionState.currentPool;
-    const currentType = connectionState.currentType;
+    const { currentPool } = connectionState;
+    const { currentType } = connectionState;
 
     if (!currentPool) {
       logger.warn('No active database connection, attempting to reconnect');
@@ -328,7 +336,9 @@ const startHealthChecks = () => {
  */
 const getPool = () => {
   if (!connectionState.currentPool) {
-    throw new Error('No database connection available. Please check your database configuration and ensure connection manager initialized successfully.');
+    throw new Error(
+      'No database connection available. Please check your database configuration and ensure connection manager initialized successfully.',
+    );
   }
   return connectionState.currentPool;
 };
@@ -401,7 +411,9 @@ const shutdown = async () => {
 // The connection will be established in the background
 // If initialization fails, periodic health checks will attempt to reconnect
 initializeConnectionManager().catch((error) => {
-  logger.error('Failed to initialize database connection manager on startup', { error: error.message });
+  logger.error('Failed to initialize database connection manager on startup', {
+    error: error.message,
+  });
   // Don't throw - allow server to start and retry on first database operation
 });
 
@@ -410,10 +422,5 @@ process.on('SIGTERM', shutdown);
 process.on('SIGINT', shutdown);
 
 export {
-  getPool,
-  getConnectionType,
-  isConnectionHealthy,
-  initializeConnectionManager,
-  shutdown,
+  getPool, getConnectionType, isConnectionHealthy, initializeConnectionManager, shutdown,
 };
-

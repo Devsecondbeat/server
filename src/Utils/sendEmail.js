@@ -9,7 +9,7 @@ if (!sendGridApiKey) {
 } else if (!sendGridApiKey.startsWith('SG.')) {
   console.error('[SENDGRID] Error: SENDGRID_API_KEY does not start with "SG."');
   console.error('[SENDGRID] Invalid API key format. SendGrid API keys must start with "SG."');
-  console.error('[SENDGRID] Current key starts with:', sendGridApiKey.substring(0, 5) + '...');
+  console.error('[SENDGRID] Current key starts with:', `${sendGridApiKey.substring(0, 5)}...`);
 } else {
   sgMail.setApiKey(sendGridApiKey);
   console.log('[SENDGRID] API key configured successfully');

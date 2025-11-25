@@ -28,7 +28,9 @@ const dbConfig = {
       const certContent = fs.readFileSync(certPath).toString();
       return { ca: certContent };
     } catch (error) {
-      console.error(`[Database Config] Failed to read SSL certificate from path: ${process.env.CERTPATH}`);
+      console.error(
+        `[Database Config] Failed to read SSL certificate from path: ${process.env.CERTPATH}`,
+      );
       console.error(`[Database Config] Error: ${error.message}`);
       return false;
     }
@@ -37,11 +39,7 @@ const dbConfig = {
 
 // Export connection manager functions
 export {
-  getPool,
-  getConnectionType,
-  isConnectionHealthy,
-  initializeConnectionManager,
-  shutdown,
+  getPool, getConnectionType, isConnectionHealthy, initializeConnectionManager, shutdown,
 };
 
 // Export legacy dbConfig for backward compatibility

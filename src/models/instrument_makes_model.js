@@ -53,7 +53,9 @@ const getInstrumentAdsbyUser = async (req, res) => {
     // get all instrument ads for the user
     const user_id = parseInt(req.params.id, 10);
     const pool = getPool();
-    const result = await pool.query('select * from used_instrument_ads where user_id = $1', [user_id]);
+    const result = await pool.query('select * from used_instrument_ads where user_id = $1', [
+      user_id,
+    ]);
     return result.rows;
   } catch (error) {
     console.log(error);
@@ -101,21 +103,6 @@ const deleteInstrumentAds = async (req, res) => {
   } catch (error) {
     console.log(error);
     throw error;
-  }
-};
-
-    await pool.query(
-      'delete from used_instrument_ads where id = $1 ',
-      [ad_id],
-      (error, results) => {
-        if (error) {
-          throw error;
-        }
-        return res.status(200).send(`User deleted with ID: ${ad_id}`);
-      },
-    );
-  } catch (error) {
-    console.log(error);
   }
 };
 

@@ -22,9 +22,6 @@ export const gethashedPwdByEmailID = async (userEmailID) => {
 };
 
 export const setActivationTokenAndExpiry = async (token, expiry, emailID) => {
-  //
-
-export const setActivationTokenAndExpiry = async (token, expiry, emailID) => {
   try {
     const query = `
       UPDATE users
@@ -39,7 +36,6 @@ export const setActivationTokenAndExpiry = async (token, expiry, emailID) => {
     throw error;
   }
 };
-
 
 export const getActivationTokenAndExpiryByEmailID = async (emailID) => {
   try {

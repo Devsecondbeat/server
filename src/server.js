@@ -3,11 +3,8 @@ import helmet from 'helmet';
 import cors from 'cors';
 import {} from 'dotenv/config';
 import routes from './routes/apiroutes.js';
-import {
-  getConnectionType,
-  isConnectionHealthy,
-} from './config/database.js';
-
+import { getConnectionType, isConnectionHealthy } from './config/database.js';
+import logger from './config/logger.js';
 
 const app = express();
 const { PORT } = process.env;
