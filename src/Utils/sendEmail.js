@@ -1,6 +1,19 @@
 import sgMail from '@sendgrid/mail';
 
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+// Validate and set SendGrid API key
+const sendGridApiKey = process.env.SENDGRID_API_KEY;
+
+if (!sendGridApiKey) {
+  console.error('[SENDGRID] Error: SENDGRID_API_KEY environment variable is not set');
+  console.error('[SENDGRID] Please add SENDGRID_API_KEY to your .env file');
+} else if (!sendGridApiKey.startsWith('SG.')) {
+  console.error('[SENDGRID] Error: SENDGRID_API_KEY does not start with "SG."');
+  console.error('[SENDGRID] Invalid API key format. SendGrid API keys must start with "SG."');
+  console.error('[SENDGRID] Current key starts with:', sendGridApiKey.substring(0, 5) + '...');
+} else {
+  sgMail.setApiKey(sendGridApiKey);
+  console.log('[SENDGRID] API key configured successfully');
+}
 
 export const sendActivationEmail = async (recipientEmail, activationLink, userName) => {
   const msg = {
