@@ -1,5 +1,6 @@
 import express from 'express';
 import helmet from 'helmet';
+import cors from 'cors';
 import {} from 'dotenv/config';
 import routes from './routes/apiroutes.js';
 import {
@@ -9,12 +10,22 @@ import {
 
 
 const app = express();
-const PORT = process.env.PORT;
-const authenticateToken = () => {};
+const { PORT } = process.env;
 
-// To display the global variables defined in codeGen js file. 
+// To display the global variables defined in codeGen js file.
 
-//app.use(helmet());
+app.use(helmet());
+
+// CORS configuration
+app.use(
+  cors({
+    origin: process.env.CORS_ORIGIN || '*',
+    credentials: true,
+    methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
+    allowedHeaders: ['Content-Type', 'Authorization'],
+  })
+);
+
 // Middleware to parse JSON bodies
 app.use(express.json());
 
@@ -58,7 +69,7 @@ app.get('/health/database', (req, res) => {
 // API routes
 app.use('/api/v1', routes);
 
-// Start serverls
+// Start server
 app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
+  logger.info(`Server is running on port ${PORT}`);
 });

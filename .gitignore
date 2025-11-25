@@ -18,3 +18,9 @@ Thumbs.db
 
 # Temporary files for uploads if you store them locally before sending to S3
 uploads/
+
+# Ignore documentation markdown files (but allow important ones)
+*.md
+!README.md
+!CONTRIBUTING.md
+.husky/

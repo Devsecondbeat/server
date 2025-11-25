@@ -1,8 +1,8 @@
 import { getPool } from '../config/database.js';
 
-//user Registration will be async, as the user gets a confirmation email
+// user Registration will be async, as the user gets a confirmation email
 
-//Database save, activation code generation, send email code generation. 
+// Database save, activation code generation, send email code generation.
 
 export const userRegistration = async (firstName, lastName, phoneNumber, emailID, password) => {
   try {

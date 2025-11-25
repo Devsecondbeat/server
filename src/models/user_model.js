@@ -1,7 +1,5 @@
 import { getPool } from '../config/database.js';
 
- 
-
 export const gethashedPwdByEmailID = async (userEmailID) => {
   try {
     const query = 'select encrypted_password from users where email=$1;';
@@ -23,6 +21,8 @@ export const gethashedPwdByEmailID = async (userEmailID) => {
   }
 };
 
+export const setActivationTokenAndExpiry = async (token, expiry, emailID) => {
+  //
 
 export const setActivationTokenAndExpiry = async (token, expiry, emailID) => {
   try {

@@ -104,5 +104,26 @@ const deleteInstrumentAds = async (req, res) => {
   }
 };
 
-export {getInstrumentMakes, createInstrumentAds, getInstrumentAds, getInstrumentAdsbyUser, updateInstrumentAds, deleteInstrumentAds};
+    await pool.query(
+      'delete from used_instrument_ads where id = $1 ',
+      [ad_id],
+      (error, results) => {
+        if (error) {
+          throw error;
+        }
+        return res.status(200).send(`User deleted with ID: ${ad_id}`);
+      },
+    );
+  } catch (error) {
+    console.log(error);
+  }
+};
 
+export {
+  getInstrumentMakes,
+  createInstrumentAds,
+  getInstrumentAds,
+  getInstrumentAdsbyUser,
+  updateInstrumentAds,
+  deleteInstrumentAds,
+};
