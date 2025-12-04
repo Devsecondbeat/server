@@ -24,3 +24,5 @@ uploads/
 !README.md
 !CONTRIBUTING.md
 .husky/
+#Ignore SSL certificate for supabase database
+prod-ca-2021.crt

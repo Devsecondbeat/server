@@ -45,20 +45,14 @@ usedInstrumentsRouter.get('/getImageURL', (req, res) => {
 
 usedInstrumentsRouter.get('/getinstrumentMakes', getinstrumentMakes);
 
-usedInstrumentsRouter.post('/createinstrumentAds', (req, res) => {
-  createinstrumentAds(req, res);
-});
+usedInstrumentsRouter.post('/createinstrumentAds', createinstrumentAds);
 
 usedInstrumentsRouter.get('/getinstrumentAds', getinstrumentAds);
 
 usedInstrumentsRouter.get('/getinstrumentAdsbyUser/:id', getinstrumentAdsbyUser);
 
-usedInstrumentsRouter.put('/updateinstrumentAds/:id', (req, res) => {
-  updateinstrumentAds(req, res);
-});
+usedInstrumentsRouter.put('/updateinstrumentAds/:id', updateinstrumentAds);
 
-usedInstrumentsRouter.delete('/deleteinstrumentAds/:id', (req, res) => {
-  deleteinstrumentAds(req, res);
-});
+usedInstrumentsRouter.delete('/deleteinstrumentAds/:id', deleteinstrumentAds);
 
 export default usedInstrumentsRouter;

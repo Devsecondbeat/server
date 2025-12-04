@@ -1,4 +1,5 @@
 import { getPool } from '../config/database.js';
+import logger from '../config/logger.js';
 
 const getInstrumentMakes = async () => {
   try {
@@ -7,30 +8,25 @@ const getInstrumentMakes = async () => {
     const result = await pool.query(query);
     return result.rows;
   } catch (error) {
-    console.log(error);
+    logger.error('Error fetching instrument makes', { error: error.message, stack: error.stack });
     throw error;
   }
 };
 
-const createInstrumentAds = async (req, res) => {
+const createInstrumentAds = async (adData) => {
   try {
     // create an instrument ad
     const {
       user_id, make_id, name, description, price, condition,
-    } = req.body;
+    } = adData;
     const pool = getPool();
-    await pool.query(
+    const result = await pool.query(
       'Insert into used_instrument_ads (user_id, make_id, name, description, price, condition) values($1, $2, $3, $4, $5, $6) returning *',
       [user_id, make_id, name, description, price, condition],
-      (error, results) => {
-        if (error) {
-          throw error;
-        }
-        return res.status(201).send(`Ad added with ID: ${results.rows[0].id}`);
-      },
     );
+    return result.rows[0];
   } catch (error) {
-    console.log(error);
+    logger.error('Error creating instrument ad', { error: error.message, stack: error.stack, adData });
     throw error;
   }
 };
@@ -43,65 +39,52 @@ const getInstrumentAds = async () => {
     const result = await pool.query(query);
     return result.rows;
   } catch (error) {
-    console.log(error);
+    logger.error('Error fetching instrument ads', { error: error.message, stack: error.stack });
     throw error;
   }
 };
 
-const getInstrumentAdsbyUser = async (req, res) => {
+const getInstrumentAdsbyUser = async (userId) => {
   try {
     // get all instrument ads for the user
-    const user_id = parseInt(req.params.id, 10);
     const pool = getPool();
     const result = await pool.query('select * from used_instrument_ads where user_id = $1', [
-      user_id,
+      userId,
     ]);
     return result.rows;
   } catch (error) {
-    console.log(error);
+    logger.error('Error fetching instrument ads by user', { error: error.message, stack: error.stack, userId });
     throw error;
   }
 };
 
-const updateInstrumentAds = async (req, res) => {
+const updateInstrumentAds = async (adId, updateData) => {
   try {
     // update an instrument ad
-    const ad_id = parseInt(req.params.id, 10);
-    const { description, price, condition } = req.query;
+    const { description, price, condition } = updateData;
     const pool = getPool();
-    await pool.query(
-      'update used_instrument_ads set description = $2, price = $3, condition = $4 where id = $1 ',
-      [ad_id, description, price, condition],
-      (error, results) => {
-        if (error) {
-          throw error;
-        }
-        return res.status(200).send(`User modified with ID: ${ad_id}`);
-      },
+    const result = await pool.query(
+      'update used_instrument_ads set description = $2, price = $3, condition = $4 where id = $1 returning *',
+      [adId, description, price, condition],
     );
+    return result.rows[0];
   } catch (error) {
-    console.log(error);
+    logger.error('Error updating instrument ad', { error: error.message, stack: error.stack, adId, updateData });
     throw error;
   }
 };
 
-const deleteInstrumentAds = async (req, res) => {
+const deleteInstrumentAds = async (adId) => {
   try {
     // delete an instrument ad
-    const ad_id = parseInt(req.params.id, 10);
     const pool = getPool();
-    await pool.query(
-      'delete from used_instrument_ads where id = $1 ',
-      [ad_id],
-      (error, results) => {
-        if (error) {
-          throw error;
-        }
-        return res.status(200).send(`User deleted with ID: ${ad_id}`);
-      },
+    const result = await pool.query(
+      'delete from used_instrument_ads where id = $1 returning *',
+      [adId],
     );
+    return result.rows[0];
   } catch (error) {
-    console.log(error);
+    logger.error('Error deleting instrument ad', { error: error.message, stack: error.stack, adId });
     throw error;
   }
 };
