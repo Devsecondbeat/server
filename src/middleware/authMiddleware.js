@@ -1,4 +1,6 @@
 import jwt from 'jsonwebtoken';
+import { verifySupabaseToken } from '../config/supabase.js';
+import logger from '../config/logger.js';
 
 export const verifyToken = (req, res, next) => {
   const token = req.header('Authorization');
@@ -10,5 +12,65 @@ export const verifyToken = (req, res, next) => {
     next();
   } catch (error) {
     res.status(401).json({ error: 'Invalid token' });
+  }
+};
+
+/**
+ * Middleware to verify Supabase JWT tokens
+ * Extracts token from Authorization header (Bearer <token>)
+ * Verifies token with Supabase and attaches user to req.user
+ */
+export const verifySupabaseTokenMiddleware = async (req, res, next) => {
+  try {
+    // Extract token from Authorization header
+    const authHeader = req.header('Authorization');
+
+    if (!authHeader) {
+      return res.status(401).json({
+        success: false,
+        error: 'Authorization header is missing',
+      });
+    }
+
+    // Check if token is in Bearer format
+    const parts = authHeader.split(' ');
+    if (parts.length !== 2 || parts[0] !== 'Bearer') {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid authorization header format. Expected: Bearer <token>',
+      });
+    }
+
+    const token = parts[1];
+
+    if (!token) {
+      return res.status(401).json({
+        success: false,
+        error: 'Token is missing',
+      });
+    }
+
+    // Verify token with Supabase
+    const user = await verifySupabaseToken(token);
+
+    if (!user) {
+      return res.status(401).json({
+        success: false,
+        error: 'Invalid or expired token',
+      });
+    }
+
+    // Attach user information to request object
+    req.user = user;
+    req.supabaseToken = token;
+
+    logger.debug('Supabase token verified for user:', user.id);
+    next();
+  } catch (error) {
+    logger.error('Error in Supabase token verification middleware:', error);
+    return res.status(500).json({
+      success: false,
+      error: 'Internal server error during token verification',
+    });
   }
 };
