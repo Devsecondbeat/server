@@ -1,6 +1,6 @@
 import jwt from 'jsonwebtoken';
 
-export const verifyToken = (req, res, next) => {
+const verifyToken = (req, res, next) => {
   const token = req.header('Authorization');
 
   if (!token) {
@@ -11,8 +11,10 @@ export const verifyToken = (req, res, next) => {
     req.emailID = decoded.emailID;
     next();
   } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
+    return res.status(401).json({ error: 'Invalid token' });
     // Note: Response already sent, so we don't call next(error)
     // This is acceptable for authentication middleware
   }
 };
+
+export default verifyToken;
