@@ -1,15 +1,6 @@
 import pkg from 'pg';
 import fs from 'fs';
-
-// Logger - replace with Winston logger import if available
-// import logger from './logger.js';
-// For now, using console as fallback
-const logger = {
-  info: (...args) => console.log('[DB-MANAGER]', ...args),
-  warn: (...args) => console.warn('[DB-MANAGER]', ...args),
-  error: (...args) => console.error('[DB-MANAGER]', ...args),
-  debug: (...args) => console.debug('[DB-MANAGER]', ...args),
-};
+import logger from './logger.js';
 
 const { Pool } = pkg;
 

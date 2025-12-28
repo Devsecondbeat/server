@@ -1,4 +1,5 @@
 import express from 'express';
+import logger from '../config/logger.js';
 import {
   getinstrumentMakes,
   createinstrumentAds,
@@ -10,15 +11,15 @@ import {
 
 const usedInstrumentsRouter = express.Router();
 
-usedInstrumentsRouter.put('/uploadImages' ,(req, res) => {
-  console.log(req);
-  console.log('received requeset');
+usedInstrumentsRouter.put('/uploadImages', (req, res) => {
+  logger.debug('Upload images request received', { body: req.body, headers: req.headers });
+  logger.info('Received upload images request');
 
   res.send('Uploaded successfully to S3 bucket');
 });
 
-usedInstrumentsRouter.get('/getImageURL', (req, res) => {
-  console.log('getImageURL request');
+usedInstrumentsRouter.get('/getImageURL', (_req, _res) => {
+  logger.info('Get image URL request received');
 });
 
 usedInstrumentsRouter.get('/getinstrumentMakes', getinstrumentMakes);

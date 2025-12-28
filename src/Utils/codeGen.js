@@ -3,6 +3,7 @@ import crypto from 'crypto';
 import moment from 'moment';
 import jwt from 'jsonwebtoken';
 import { env } from 'process';
+import logger from '../config/logger.js';
 import { setActivationTokenAndExpiry } from '../models/user_model.js';
 
 const saltRounds = 10; // Number of salt rounds
@@ -10,7 +11,7 @@ const saltRounds = 10; // Number of salt rounds
 export const generateEncryptedPassword = (password) => new Promise((resolve, reject) => {
   bcrypt.hash(password, saltRounds, (err, hash) => {
     if (err) {
-      console.error(err);
+      logger.error('Error generating encrypted password', { error: err });
       reject(err);
     } else {
       resolve(hash);
@@ -42,10 +43,10 @@ export const generateActivationLink = (userEmail) => generateActivationToken().t
 // function to compare the password with the hashed password.
 
 export const comparePassword = (userPassword, hashPassword) => new Promise((resolve, reject) => {
-  console.log(userPassword, hashPassword);
+  logger.debug('Comparing passwords');
   bcrypt.compare(userPassword, hashPassword, (err, result) => {
     if (err) {
-      console.error(err);
+      logger.error('Error comparing passwords', { error: err });
       reject(err);
     } else {
       resolve(result);
@@ -58,7 +59,7 @@ export const genAuthToken = (emailID) => {
 
   const token = jwt.sign({ emailID }, process.env.Token_Secret_Key, { expiresIn: 3600 });
 
-  console.log(token);
+  logger.debug('Generated auth token');
   return token;
 };
 
@@ -66,7 +67,7 @@ export const validateAuthToken = (token, emailID) => {
   if (token) {
     const decode = jwt.verify(token, process.env.Token_Secret_Key);
 
-    console.log(decode);
+    logger.debug('Token decoded successfully');
     if (decode.emailID === emailID) return true;
   }
   return false;
@@ -83,14 +84,14 @@ export const isTokenValid = (db_Token, token) => {
 
   try {
     if (bufferA.length !== bufferB.length) {
-      console.log('Inside buffer length comparison');
+      logger.debug('Token buffer length comparison');
       throw new Error('Tokens have different lengths');
     }
 
     // Use timingSafeEqual to compare the tokens, which provides consistent timing in comparison that avoids timings attacks.
     return crypto.timingSafeEqual(bufferA, bufferB);
   } catch (err) {
-    console.error('Error comparing tokens:', err.message);
+    logger.error('Error comparing tokens:', { error: err.message });
     return false;
   }
 };

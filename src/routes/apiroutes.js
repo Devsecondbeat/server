@@ -6,5 +6,6 @@ const router = express.Router();
 
 // Use imported routes
 router.use('/instruments', verifyToken, instrumentRoutes);
+// router.use('/instruments', instrumentRoutes);
 
 export default router;

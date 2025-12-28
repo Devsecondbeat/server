@@ -1,4 +1,6 @@
 import pg from 'pg';
+import logger from './config/logger.js';
+
 const { Pool } = pg;
 
 const pool = new Pool({
@@ -11,14 +13,14 @@ const pool = new Pool({
 
 async function fetchAllRecords() {
   try {
-    //await client.connect();
+    // await client.connect();
 
     const queryText = 'SELECT * FROM instrument_makes'; // Replace 'your_table_name' with your actual table name
     const { rows } = await pool.query(queryText);
 
-    console.log(rows);
+    logger.info('Query results:', { rows });
   } catch (err) {
-    console.error('Error executing query', err.stack);
+    logger.error('Error executing query', { error: err.stack });
   }
 }
 fetchAllRecords();
