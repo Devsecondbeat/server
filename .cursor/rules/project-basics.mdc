@@ -1,0 +1,21 @@
+---
+description: Repo-wide basics (ESM, formatting, structure)
+alwaysApply: true
+---
+
+## Project basics
+
+- Use **ES modules** (`import`/`export`) and keep **explicit `.js` import extensions** for local imports.
+- Keep code within existing layers:
+  - `src/routes/` wires routes and middleware
+  - `src/controllers/` handles HTTP validation + responses
+  - `src/models/` owns SQL/DB access
+  - `src/services/` wraps external APIs (Cloudflare, SendGrid, etc.)
+  - `src/config/` holds shared config (logger, database)
+- Prefer `logger` from `src/config/logger.js` over `console.*` (ESLint warns on console).
+- Match formatting defaults (Prettier): single quotes, semicolons, 2 spaces, ~100 print width.
+
+## Safe defaults
+
+- Don’t introduce CommonJS (`require`, `module.exports`) or mixed module syntax.
+- Don’t add new DB pools in application code; use the existing connection manager (`getPool()`).

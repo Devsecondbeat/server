@@ -1,0 +1,36 @@
+---
+description: Express routing/controller conventions for this API
+globs: src/**/*.js
+alwaysApply: false
+---
+
+## Express API conventions
+
+- Use ESM imports with `.js` extensions.
+- Prefer `express.Router()` modules that `export default router`.
+- Handlers should be `async (req, res, next)` and either `return res.status(...).json(...)` or `next(error)`.
+
+## Response shape & status codes
+
+- Validation failures: return **4xx** with JSON `{ error: '...' }`.
+- Success responses may be either:
+  - raw data (e.g. array of rows), or
+  - `{ message, data }` for create/update/delete operations.
+- Avoid breaking existing response contracts; align with the surrounding endpoints.
+
+## Validation patterns used in this repo
+
+- Numeric IDs from params: `const id = parseInt(req.params.id, 10);` then `Number.isNaN(id)` → 400.
+- UUIDs from params: validate with a UUID regex before querying → 400.
+
+## Auth context
+
+- Auth middleware sets `req.user` (Supabase JWT) and `req.user.sub` is the authenticated user UUID.
+- For owner-protected resources: fetch owner in model, then compare `owner.user_id` to `req.user.sub` → 403 if mismatch.
+
+## Separation of concerns
+
+- Routes: compose paths + middleware only.
+- Controllers: request parsing/validation + HTTP response mapping.
+- Models: SQL + transactions.
+- Services: external calls (Cloudflare Images / SendGrid).
