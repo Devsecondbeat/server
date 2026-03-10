@@ -1,0 +1,78 @@
+meta {
+  name: Sign Up
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{supabaseUrl}}/auth/v1/signup
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "user@example.com",
+    "password": "securepassword123"
+  }
+}
+
+docs {
+  # Sign Up
+  
+  Create a new user account with email and password.
+  
+  ## Request Body
+  
+  | Field | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | email | string | Yes | User's email address |
+  | password | string | Yes | Password (min 6 chars) |
+  | data | object | No | Additional user metadata |
+  
+  ## Response (200 OK)
+  
+  ```json
+  {
+    "id": "uuid",
+    "aud": "authenticated",
+    "role": "authenticated",
+    "email": "user@example.com",
+    "email_confirmed_at": null,
+    "phone": "",
+    "confirmation_sent_at": "2024-01-15T10:30:00.000Z",
+    "created_at": "2024-01-15T10:30:00.000Z",
+    "updated_at": "2024-01-15T10:30:00.000Z",
+    "app_metadata": {
+      "provider": "email",
+      "providers": ["email"]
+    },
+    "user_metadata": {},
+    "identities": []
+  }
+  ```
+  
+  ## With User Metadata
+  
+  ```json
+  {
+    "email": "user@example.com",
+    "password": "securepassword123",
+    "data": {
+      "first_name": "John",
+      "last_name": "Doe"
+    }
+  }
+  ```
+  
+  ## Error Responses
+  
+  - **400**: Invalid email or password
+  - **422**: Email already registered
+}
+

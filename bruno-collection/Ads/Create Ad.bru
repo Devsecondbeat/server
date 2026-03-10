@@ -1,0 +1,76 @@
+meta {
+  name: Create Ad
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{baseUrl}}/api/v1/instruments/createinstrumentAds
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "make_id": 1,
+    "name": "Fender Stratocaster 2020",
+    "description": "Excellent condition, rarely played. Includes original case.",
+    "price": 1200,
+    "condition": "excellent",
+    "imageIds": []
+  }
+}
+
+docs {
+  # Create Instrument Ad
+  
+  Create a new instrument ad with optional images.
+  
+  ## Authentication
+  
+  Requires JWT token in Authorization header. The user_id is automatically extracted from the authenticated user's JWT token.
+  
+  ## Request Body
+  
+  | Field | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | make_id | number | Yes | The instrument make ID |
+  | name | string | Yes | Title of the ad |
+  | description | string | Yes | Description of the instrument |
+  | price | number | Yes | Price in currency units |
+  | condition | string | Yes | Condition (new, like_new, excellent, good, fair, poor) |
+  | imageIds | string[] | No | Array of Cloudflare image IDs (max 5) |
+  
+  ## Response (201 Created)
+  
+  ```json
+  {
+    "message": "Ad added with ID: 1",
+    "data": {
+      "id": 1,
+      "user_id": "550e8400-e29b-41d4-a716-446655440000",
+      "make_id": 1,
+      "name": "Fender Stratocaster 2020",
+      "description": "Excellent condition, rarely played.",
+      "price": 1200,
+      "condition": "excellent",
+      "created_at": "2024-01-15T10:30:00.000Z",
+      "images": []
+    }
+  }
+  ```
+  
+  ## Error Responses
+  
+  - **400 Bad Request**: Maximum 5 images allowed
+  - **401 Unauthorized**: Invalid or missing token
+}
+

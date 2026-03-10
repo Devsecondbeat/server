@@ -1,0 +1,66 @@
+meta {
+  name: Refresh Token
+  type: http
+  seq: 4
+}
+
+post {
+  url: {{supabaseUrl}}/auth/v1/token?grant_type=refresh_token
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "refresh_token": "{{refreshToken}}"
+  }
+}
+
+script:post-response {
+  if (res.body.access_token) {
+    bru.setEnvVar("authToken", res.body.access_token);
+    bru.setEnvVar("refreshToken", res.body.refresh_token);
+  }
+}
+
+docs {
+  # Refresh Token
+  
+  Get a new access token using a refresh token.
+  
+  ## Request Body
+  
+  | Field | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | refresh_token | string | Yes | Valid refresh token |
+  
+  ## Response (200 OK)
+  
+  ```json
+  {
+    "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "token_type": "bearer",
+    "expires_in": 3600,
+    "expires_at": 1705315800,
+    "refresh_token": "new_refresh_token",
+    "user": {
+      "id": "uuid",
+      "email": "user@example.com"
+    }
+  }
+  ```
+  
+  ## Auto-Save Tokens
+  
+  This request automatically updates `access_token` and `refresh_token` in environment variables.
+  
+  ## Error Responses
+  
+  - **400**: Invalid or expired refresh token
+}
+

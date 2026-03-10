@@ -1,0 +1,87 @@
+meta {
+  name: Update Ad
+  type: http
+  seq: 4
+}
+
+put {
+  url: {{baseUrl}}/api/v1/instruments/updateinstrumentAds/:id
+  body: json
+  auth: bearer
+}
+
+params:path {
+  id: 1
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "description": "Updated description - price reduced!",
+    "price": 1100,
+    "condition": "excellent"
+  }
+}
+
+docs {
+  # Update Instrument Ad
+  
+  Update an existing instrument ad. Can optionally update images.
+  
+  ## Authentication
+  
+  Requires JWT token in Authorization header.
+  
+  ## Path Parameters
+  
+  | Parameter | Type | Description |
+  |-----------|------|-------------|
+  | id | number | The ad ID to update |
+  
+  ## Request Body
+  
+  | Field | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | description | string | Yes | Updated description |
+  | price | number | Yes | Updated price |
+  | condition | string | Yes | Updated condition |
+  | imageIds | string[] | No | New set of image IDs (replaces existing) |
+  
+  ## Image Update Behavior
+  
+  - If `imageIds` is **not provided**: Existing images unchanged
+  - If `imageIds` is **empty `[]`**: All images removed
+  - If `imageIds` has values: Replaces existing image set
+  
+  ## Response (200 OK)
+  
+  ```json
+  {
+    "message": "Ad modified with ID: 1",
+    "data": {
+      "id": 1,
+      "user_id": 1,
+      "make_id": 1,
+      "name": "Fender Stratocaster 2020",
+      "description": "Updated description - price reduced!",
+      "price": 1100,
+      "condition": "excellent",
+      "images": []
+    }
+  }
+  ```
+  
+  ## Error Responses
+  
+  - **400 Bad Request**: Invalid ad ID or max 5 images
+  - **401 Unauthorized**: Invalid or missing token
+  - **404 Not Found**: Ad not found
+}
+

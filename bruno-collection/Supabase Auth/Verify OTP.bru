@@ -1,0 +1,97 @@
+meta {
+  name: Verify OTP
+  type: http
+  seq: 9
+}
+
+post {
+  url: {{supabaseUrl}}/auth/v1/verify
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "type": "signup",
+    "token": "123456",
+    "email": "user@example.com"
+  }
+}
+
+script:post-response {
+  if (res.body.access_token) {
+    bru.setEnvVar("authToken", res.body.access_token);
+    bru.setEnvVar("refreshToken", res.body.refresh_token);
+  }
+}
+
+docs {
+  # Verify OTP
+  
+  Verify an OTP (One-Time Password) token for various authentication flows.
+  
+  ## Request Body
+  
+  | Field | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | type | string | Yes | Token type: signup, recovery, invite, magiclink, email_change |
+  | token | string | Yes | OTP token from email |
+  | email | string | Yes* | User's email (*or phone) |
+  | phone | string | Yes* | User's phone (*or email) |
+  
+  ## Verify Signup Example
+  
+  ```json
+  {
+    "type": "signup",
+    "token": "123456",
+    "email": "user@example.com"
+  }
+  ```
+  
+  ## Verify Recovery Example
+  
+  ```json
+  {
+    "type": "recovery",
+    "token": "123456",
+    "email": "user@example.com"
+  }
+  ```
+  
+  ## Verify Magic Link Example
+  
+  ```json
+  {
+    "type": "magiclink",
+    "token": "123456",
+    "email": "user@example.com"
+  }
+  ```
+  
+  ## Response (200 OK)
+  
+  ```json
+  {
+    "access_token": "eyJhbGciOiJIUzI1NiIs...",
+    "token_type": "bearer",
+    "expires_in": 3600,
+    "refresh_token": "refresh_token_here",
+    "user": {
+      "id": "uuid",
+      "email": "user@example.com"
+    }
+  }
+  ```
+  
+  ## Error Responses
+  
+  - **400**: Invalid or expired token
+  - **422**: Token already used
+}
+

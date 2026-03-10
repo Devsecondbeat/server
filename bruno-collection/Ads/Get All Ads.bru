@@ -1,0 +1,60 @@
+meta {
+  name: Get All Ads
+  type: http
+  seq: 1
+}
+
+get {
+  url: {{baseUrl}}/api/v1/instruments/getinstrumentAds
+  body: none
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Get All Instrument Ads
+  
+  Retrieve all instrument ads with their images.
+  
+  ## Authentication
+  
+  Requires JWT token in Authorization header.
+  
+  ## Response (200 OK)
+  
+  ```json
+  [
+    {
+      "id": 1,
+      "user_id": 1,
+      "make_id": 1,
+      "name": "Fender Stratocaster 2020",
+      "description": "Excellent condition guitar",
+      "price": 1200,
+      "condition": "excellent",
+      "created_at": "2024-01-15T10:30:00.000Z",
+      "images": [
+        {
+          "id": 1,
+          "ad_id": 1,
+          "cloudflare_image_id": "abc123",
+          "display_order": 0,
+          "urls": {
+            "thumbnail": "https://imagedelivery.net/hash/abc123/thumbnail",
+            "card": "https://imagedelivery.net/hash/abc123/card",
+            "full": "https://imagedelivery.net/hash/abc123/full"
+          }
+        }
+      ]
+    }
+  ]
+  ```
+  
+  ## Error Responses
+  
+  - **401 Unauthorized**: Invalid or missing token
+}
+

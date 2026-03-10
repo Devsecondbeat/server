@@ -1,0 +1,59 @@
+meta {
+  name: Delete Ad
+  type: http
+  seq: 5
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/instruments/deleteinstrumentAds/:id
+  body: none
+  auth: bearer
+}
+
+params:path {
+  id: 1
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Delete Instrument Ad
+  
+  Delete an instrument ad. Associated images are automatically deleted due to CASCADE.
+  
+  ## Authentication
+  
+  Requires JWT token in Authorization header.
+  
+  ## Path Parameters
+  
+  | Parameter | Type | Description |
+  |-----------|------|-------------|
+  | id | number | The ad ID to delete |
+  
+  ## Response (200 OK)
+  
+  ```json
+  {
+    "message": "Ad deleted with ID: 1",
+    "data": {
+      "id": 1,
+      "user_id": 1,
+      "make_id": 1,
+      "name": "Fender Stratocaster 2020",
+      "description": "...",
+      "price": 1200,
+      "condition": "excellent"
+    }
+  }
+  ```
+  
+  ## Error Responses
+  
+  - **400 Bad Request**: Invalid ad ID
+  - **401 Unauthorized**: Invalid or missing token
+  - **404 Not Found**: Ad not found
+}
+

@@ -1,0 +1,68 @@
+meta {
+  name: Get Ad Images
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/instruments/ads/:adId/images
+  body: none
+  auth: bearer
+}
+
+params:path {
+  adId: 1
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Get Ad Images
+  
+  Retrieve all images for a specific ad with delivery URLs.
+  
+  ## Authentication
+  
+  Requires JWT token in Authorization header.
+  
+  ## Path Parameters
+  
+  | Parameter | Type | Description |
+  |-----------|------|-------------|
+  | adId | number | The ad ID |
+  
+  ## Response (200 OK)
+  
+  ```json
+  [
+    {
+      "id": 1,
+      "ad_id": 1,
+      "cloudflare_image_id": "abc123",
+      "display_order": 0,
+      "created_at": "2024-01-15T10:30:00.000Z",
+      "urls": {
+        "thumbnail": "https://imagedelivery.net/hash/abc123/thumbnail",
+        "card": "https://imagedelivery.net/hash/abc123/card",
+        "full": "https://imagedelivery.net/hash/abc123/full"
+      }
+    }
+  ]
+  ```
+  
+  ## Image Variants
+  
+  | Variant | Dimensions | Use Case |
+  |---------|------------|----------|
+  | thumbnail | 150x150 | Grid previews |
+  | card | 400x300 | Ad cards |
+  | full | 1200x900 | Full view |
+  
+  ## Error Responses
+  
+  - **400 Bad Request**: Invalid ad ID
+  - **401 Unauthorized**: Invalid or missing token
+}
+

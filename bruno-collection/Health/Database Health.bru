@@ -1,0 +1,39 @@
+meta {
+  name: Database Health
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/health/database
+  body: none
+  auth: none
+}
+
+docs {
+  # Database Health Check
+  
+  Check the health status of the database connection.
+  
+  ## Response (200 OK) - Healthy
+  
+  ```json
+  {
+    "status": "healthy",
+    "database": "supabase",
+    "timestamp": "2024-01-15T10:30:00.000Z"
+  }
+  ```
+  
+  ## Response (503 Service Unavailable) - Unhealthy
+  
+  ```json
+  {
+    "status": "unhealthy",
+    "database": "none",
+    "timestamp": "2024-01-15T10:30:00.000Z",
+    "message": "Database connection is not healthy"
+  }
+  ```
+}
+

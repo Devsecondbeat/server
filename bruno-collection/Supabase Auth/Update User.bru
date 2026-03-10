@@ -1,0 +1,87 @@
+meta {
+  name: Update User
+  type: http
+  seq: 6
+}
+
+put {
+  url: {{supabaseUrl}}/auth/v1/user
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Authorization: Bearer {{authToken}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "data": {
+      "first_name": "John",
+      "last_name": "Doe"
+    }
+  }
+}
+
+docs {
+  # Update User
+  
+  Update the currently authenticated user's information.
+  
+  ## Request Body
+  
+  | Field | Type | Description |
+  |-------|------|-------------|
+  | email | string | New email (triggers verification) |
+  | password | string | New password |
+  | data | object | User metadata to update |
+  
+  ## Update Metadata Example
+  
+  ```json
+  {
+    "data": {
+      "first_name": "John",
+      "last_name": "Doe",
+      "avatar_url": "https://..."
+    }
+  }
+  ```
+  
+  ## Update Email Example
+  
+  ```json
+  {
+    "email": "newemail@example.com"
+  }
+  ```
+  
+  ## Update Password Example
+  
+  ```json
+  {
+    "password": "newSecurePassword123"
+  }
+  ```
+  
+  ## Response (200 OK)
+  
+  ```json
+  {
+    "id": "uuid",
+    "email": "user@example.com",
+    "user_metadata": {
+      "first_name": "John",
+      "last_name": "Doe"
+    }
+  }
+  ```
+  
+  ## Error Responses
+  
+  - **401**: Invalid or expired token
+  - **422**: Invalid data format
+}
+
