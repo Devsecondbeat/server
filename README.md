@@ -119,6 +119,7 @@ Example: **Create an ad with images**
 - `src/middleware/`: Auth middleware (Supabase JWT verification).
 - `bruno-collection/`: API collection for manual testing and environment management.
 
+
 ### Mermaid.js sequence diagram (main interaction)
 ```mermaid
 sequenceDiagram
@@ -145,7 +146,10 @@ sequenceDiagram
   API->>Auth: Verify JWT
   Auth-->>API: req.user.sub set
   API->>Ctrl: createinstrumentAds
-  Ctrl->>DB: BEGIN; INSERT used_instrument_ads; INSERT ad_images; COMMIT
+  Ctrl->>DB: BEGIN transaction
+  Ctrl->>DB: INSERT used_instrument_ads
+  Ctrl->>DB: INSERT ad_images (optional)
+  Ctrl->>DB: COMMIT transaction
   DB-->>Ctrl: created ad + images
   Ctrl-->>Client: 201 {message, data (with delivery URLs)}
 ```
