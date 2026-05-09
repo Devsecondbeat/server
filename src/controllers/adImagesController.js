@@ -5,7 +5,7 @@ import {
   deleteAdImage,
   canAddImages,
   getAdOwner,
-} from '../models/ad_images_model.js';
+} from '../models/marketplace_model.js';
 import logger from '../config/logger.js';
 
 /**
@@ -38,7 +38,6 @@ export const getUploadUrls = async (req, res, next) => {
     next(error);
   }
 };
-
 /**
  * Get all images for a specific ad
  * GET /instruments/ads/:adId/images
@@ -67,7 +66,6 @@ export const getImagesForAd = async (req, res, next) => {
     next(error);
   }
 };
-
 /**
  * Delete a single image from an ad
  * DELETE /instruments/ads/:adId/images/:imageId
@@ -91,10 +89,9 @@ export const removeAdImage = async (req, res, next) => {
       return res.status(404).json({ error: 'Ad not found' });
     }
 
-    // TODO: Add auth check here when user ID is available in request
-    // if (req.userId !== ad.user_id) {
-    //   return res.status(403).json({ error: 'Unauthorized' });
-    // }
+    if (ad.user_id !== req.user.sub) {
+      return res.status(403).json({ error: 'Unauthorized to delete this image' });
+    }
 
     // Delete from database
     const deleted = await deleteAdImage(adId, imageId);
@@ -140,4 +137,3 @@ export const checkCanAddImages = async (req, res, next) => {
     next(error);
   }
 };
-
