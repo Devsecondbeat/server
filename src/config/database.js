@@ -5,7 +5,7 @@ const dbConfig = {
   password: process.env.DBPASSWORD,
   port: process.env.DBPORT,
   host: process.env.DBHOST,
-  ssl:{
+  ssl: process.env.NODE_ENV === 'test' ? undefined : {
     ca : fs.readFileSync(process.env.CERTPATH).toString()
   }
 };

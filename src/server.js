@@ -24,7 +24,11 @@ app.get('/', (req, res) => {
 
 app.use('/api/v1', routes);
 
-// Start serverls
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+// Start server only if not in test
+if (process.env.NODE_ENV !== 'test') {
+  app.listen(PORT, () => {
+    console.log(`Server is running on port ${PORT}`);
+  });
+}
+
+export default app;

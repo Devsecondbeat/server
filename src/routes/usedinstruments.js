@@ -23,7 +23,7 @@ const s3 = new S3Client(
 const upload = multer({
   storage: multerS3({
     s3: s3,
-    bucket: process.env.S3_BUCKET,  // Replace with your own bucket name
+    bucket: process.env.S3_BUCKET || 'test-bucket',
     key: function (req, file, cb) {
       cb(null, Date.now().toString() + '-' + file.originalname);
     }
