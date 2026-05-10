@@ -1,5 +1,20 @@
 import sgMail from '@sendgrid/mail';
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+import logger from '../config/logger.js';
+
+// Validate and set SendGrid API key
+const sendGridApiKey = process.env.SENDGRID_API_KEY;
+
+if (!sendGridApiKey) {
+  logger.error('[SENDGRID] Error: SENDGRID_API_KEY environment variable is not set');
+  logger.error('[SENDGRID] Please add SENDGRID_API_KEY to your .env file');
+} else if (!sendGridApiKey.startsWith('SG.')) {
+  logger.error('[SENDGRID] Error: SENDGRID_API_KEY does not start with "SG."');
+  logger.error('[SENDGRID] Invalid API key format. SendGrid API keys must start with "SG."');
+  logger.error('[SENDGRID] Current key starts with:', `${sendGridApiKey.substring(0, 5)}...`);
+} else {
+  sgMail.setApiKey(sendGridApiKey);
+  logger.info('[SENDGRID] API key configured successfully');
+}
 
 export const sendActivationEmail = async (recipientEmail, activationLink, userName) => {
   const msg = {
@@ -17,13 +32,14 @@ export const sendActivationEmail = async (recipientEmail, activationLink, userNa
       <p>Best regards,<br/>The Second Beat Team</p>
     `,
   };
-  
-  sgMail.send(msg)
-    .then(() => console.log('Activation email sent successfully'))
-    .catch(error => console.error('Error sending activation email:', error));
+
+  sgMail
+    .send(msg)
+    .then(() => logger.info('Activation email sent successfully'))
+    .catch((error) => logger.error('Error sending activation email:', error));
 };
 
-export const sendResetPasswordCode = async (recipientEmail,resetPasswordCode) => {
+export const sendResetPasswordCode = async (recipientEmail, resetPasswordCode) => {
   const msg = {
     to: recipientEmail,
     from: 'support@secondbeat.in', // Use the email address you verified with SendGrid
@@ -44,8 +60,9 @@ export const sendResetPasswordCode = async (recipientEmail,resetPasswordCode) =>
         <p>Thank you,<br>The Second Beat Team</p>
     `,
   };
-  
-  sgMail.send(msg)
-    .then(() => console.log('Reset Password code email sent successfully'))
-    .catch(error => console.error('Error sending Reset Password Code email:', error));
+
+  sgMail
+    .send(msg)
+    .then(() => logger.info('Reset Password code email sent successfully'))
+    .catch((error) => logger.error('Error sending Reset Password Code email:', error));
 };

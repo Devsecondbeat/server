@@ -1,0 +1,44 @@
+meta {
+  name: Sign Out
+  type: http
+  seq: 7
+}
+
+post {
+  url: {{supabaseUrl}}/auth/v1/logout
+  body: none
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Authorization: Bearer {{authToken}}
+}
+
+docs {
+  # Sign Out
+  
+  Sign out the currently authenticated user and invalidate their token.
+  
+  ## Headers
+  
+  | Header | Value |
+  |--------|-------|
+  | apikey | Your Supabase anon key |
+  | Authorization | Bearer {access_token} |
+  
+  ## Response (204 No Content)
+  
+  No response body on success.
+  
+  ## Notes
+  
+  - Invalidates the current access token
+  - Refresh token is also invalidated
+  - User must sign in again to get new tokens
+  
+  ## Error Responses
+  
+  - **401**: Invalid or already expired token
+}
+

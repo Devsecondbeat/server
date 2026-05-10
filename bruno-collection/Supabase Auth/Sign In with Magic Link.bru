@@ -1,0 +1,56 @@
+meta {
+  name: Sign In with Magic Link
+  type: http
+  seq: 3
+}
+
+post {
+  url: {{supabaseUrl}}/auth/v1/otp
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "email": "user@example.com",
+    "create_user": true
+  }
+}
+
+docs {
+  # Sign In with Magic Link
+  
+  Send a magic link to user's email for passwordless authentication.
+  
+  ## Request Body
+  
+  | Field | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | email | string | Yes | User's email address |
+  | create_user | boolean | No | Create user if doesn't exist (default: true) |
+  
+  ## Response (200 OK)
+  
+  ```json
+  {
+    "message_id": "msg_uuid"
+  }
+  ```
+  
+  ## Notes
+  
+  - User receives email with magic link
+  - Link redirects to your app with tokens
+  - Set `create_user: false` to prevent auto user creation
+  
+  ## Error Responses
+  
+  - **400**: Invalid email
+  - **429**: Rate limit exceeded
+}
+

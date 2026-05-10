@@ -1,0 +1,61 @@
+meta {
+  name: Check Can Add Images
+  type: http
+  seq: 3
+}
+
+get {
+  url: {{baseUrl}}/api/v1/instruments/ads/:adId/images/can-add?count=2
+  body: none
+  auth: bearer
+}
+
+params:query {
+  count: 2
+}
+
+params:path {
+  adId: 1
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Check Can Add Images
+  
+  Check if additional images can be added to an ad.
+  
+  ## Authentication
+  
+  Requires JWT token in Authorization header.
+  
+  ## Path Parameters
+  
+  | Parameter | Type | Description |
+  |-----------|------|-------------|
+  | adId | number | The ad ID |
+  
+  ## Query Parameters
+  
+  | Parameter | Type | Default | Description |
+  |-----------|------|---------|-------------|
+  | count | number | 1 | Images to add |
+  
+  ## Response (200 OK)
+  
+  ```json
+  {
+    "allowed": true,
+    "current": 2,
+    "max": 5
+  }
+  ```
+  
+  ## Error Responses
+  
+  - **400 Bad Request**: Invalid ad ID
+  - **401 Unauthorized**: Invalid or missing token
+}
+

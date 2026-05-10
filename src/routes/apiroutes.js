@@ -1,13 +1,10 @@
 import express from 'express';
 import instrumentRoutes from './usedinstruments.js';
-import userRoutes from './user.js';
-import { verifyToken } from '../middleware/authMiddleware.js';
-
+import verifyToken from '../middleware/authMiddleware.js';
 
 const router = express.Router();
-
 // Use imported routes
-router.use('/instruments', verifyToken,instrumentRoutes);
-router.use('/users', userRoutes);
+router.use('/instruments', verifyToken, instrumentRoutes);
+// router.use('/instruments', instrumentRoutes);
 
 export default router;

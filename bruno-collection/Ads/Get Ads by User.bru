@@ -1,0 +1,59 @@
+meta {
+  name: Get Ads by User
+  type: http
+  seq: 2
+}
+
+get {
+  url: {{baseUrl}}/api/v1/instruments/getinstrumentAdsbyUser/:id
+  body: none
+  auth: bearer
+}
+
+params:path {
+  id: 550e8400-e29b-41d4-a716-446655440000
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Get Instrument Ads by User
+  
+  Retrieve all instrument ads for a specific user.
+  
+  ## Authentication
+  
+  Requires JWT token in Authorization header.
+  
+  ## Path Parameters
+  
+  | Parameter | Type | Description |
+  |-----------|------|-------------|
+  | id | UUID | The user ID (Supabase auth UUID format) |
+  
+  ## Response (200 OK)
+  
+  ```json
+  [
+    {
+      "id": 1,
+      "user_id": "550e8400-e29b-41d4-a716-446655440000",
+      "make_id": 1,
+      "name": "Fender Stratocaster 2020",
+      "description": "Excellent condition guitar",
+      "price": 1200,
+      "condition": "excellent",
+      "created_at": "2024-01-15T10:30:00.000Z",
+      "images": []
+    }
+  ]
+  ```
+  
+  ## Error Responses
+  
+  - **400 Bad Request**: Invalid user ID format (must be UUID)
+  - **401 Unauthorized**: Invalid or missing token
+}
+

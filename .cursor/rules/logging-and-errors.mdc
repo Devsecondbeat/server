@@ -1,0 +1,29 @@
+---
+description: Logging + error propagation conventions (Winston logger, next(error))
+globs: src/**/*.js
+alwaysApply: false
+---
+
+## Logging
+
+- Use `logger` from `src/config/logger.js` (`logger.debug/info/warn/error`).
+- Prefer structured metadata objects for context.
+- Avoid logging secrets (tokens, API keys, raw Authorization headers).
+
+## Errors
+
+- In controllers, prefer `next(error)` for unexpected failures.
+- Only catch-and-respond when you can map to a known HTTP outcome (e.g. upstream service failure → 502).
+- Don’t swallow errors; either return a response or rethrow/pass to `next`.
+
+## Examples
+
+```js
+try {
+  const result = await doWork();
+  return res.status(200).json(result);
+} catch (error) {
+  logger.error('Failed to doWork', { error: error.message, stack: error.stack });
+  return next(error);
+}
+```

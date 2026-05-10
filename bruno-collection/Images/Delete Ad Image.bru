@@ -1,0 +1,59 @@
+meta {
+  name: Delete Ad Image
+  type: http
+  seq: 4
+}
+
+delete {
+  url: {{baseUrl}}/api/v1/instruments/ads/:adId/images/:imageId
+  body: none
+  auth: bearer
+}
+
+params:path {
+  adId: 1
+  imageId: abc123-cloudflare-image-id
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+docs {
+  # Delete Ad Image
+  
+  Remove a single image from an ad.
+  
+  ## Authentication
+  
+  Requires JWT token in Authorization header.
+  
+  ## Path Parameters
+  
+  | Parameter | Type | Description |
+  |-----------|------|-------------|
+  | adId | number | The ad ID |
+  | imageId | string | Cloudflare image ID |
+  
+  ## Response (200 OK)
+  
+  ```json
+  {
+    "message": "Image removed successfully",
+    "data": {
+      "id": 1,
+      "ad_id": 1,
+      "cloudflare_image_id": "abc123",
+      "display_order": 0,
+      "created_at": "2024-01-15T10:30:00.000Z"
+    }
+  }
+  ```
+  
+  ## Error Responses
+  
+  - **400 Bad Request**: Invalid ad ID or image ID
+  - **401 Unauthorized**: Invalid or missing token
+  - **404 Not Found**: Ad or image not found
+}
+

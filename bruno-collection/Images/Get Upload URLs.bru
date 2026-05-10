@@ -1,0 +1,72 @@
+meta {
+  name: Get Upload URLs
+  type: http
+  seq: 1
+}
+
+post {
+  url: {{baseUrl}}/api/v1/instruments/images/upload-urls
+  body: json
+  auth: bearer
+}
+
+auth:bearer {
+  token: {{authToken}}
+}
+
+headers {
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "count": 3
+  }
+}
+
+docs {
+  # Get Upload URLs
+  
+  Request signed upload URLs from Cloudflare Images for direct browser uploads.
+  
+  ## Authentication
+  
+  Requires JWT token in Authorization header.
+  
+  ## Request Body
+  
+  | Field | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | count | number | Yes | Number of upload URLs (1-5) |
+  
+  ## Response (200 OK)
+  
+  ```json
+  {
+    "uploadUrls": [
+      {
+        "uploadURL": "https://upload.imagedelivery.net/...",
+        "id": "abc123-image-id"
+      },
+      {
+        "uploadURL": "https://upload.imagedelivery.net/...",
+        "id": "def456-image-id"
+      }
+    ]
+  }
+  ```
+  
+  ## Usage Flow
+  
+  1. Call this endpoint with count of images
+  2. Upload files directly to Cloudflare using `uploadURL`
+  3. Store the `id` values for ad creation
+  4. Create ad with `imageIds` array
+  
+  ## Error Responses
+  
+  - **400 Bad Request**: Count must be between 1 and 5
+  - **401 Unauthorized**: Invalid or missing token
+  - **502 Bad Gateway**: Cloudflare service unavailable
+}
+

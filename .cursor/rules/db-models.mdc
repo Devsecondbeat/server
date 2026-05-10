@@ -1,0 +1,36 @@
+---
+description: PostgreSQL model patterns (getPool, parameterized SQL, transactions)
+globs: src/models/**/*.js
+alwaysApply: false
+---
+
+## DB model conventions
+
+- Import DB access from `src/config/database.js`:
+  - `import { getPool } from '../config/database.js';`
+- Do **not** instantiate `new Pool()` in application models.
+- Always use parameterized queries (`$1`, `$2`, ...) with params arrays.
+
+## Transactions
+
+Use an explicit client when doing multi-step writes:
+
+```js
+const pool = getPool();
+const client = await pool.connect();
+try {
+  await client.query('BEGIN');
+  // ... multiple queries ...
+  await client.query('COMMIT');
+} catch (error) {
+  await client.query('ROLLBACK');
+  throw error;
+} finally {
+  client.release();
+}
+```
+
+## Errors & logging
+
+- Log structured context via `logger.error('...', { error: error.message, stack: error.stack, ...context })`.
+- Re-throw the error after logging so controllers can `next(error)`.

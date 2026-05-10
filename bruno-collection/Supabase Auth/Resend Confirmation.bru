@@ -1,0 +1,68 @@
+meta {
+  name: Resend Confirmation
+  type: http
+  seq: 10
+}
+
+post {
+  url: {{supabaseUrl}}/auth/v1/resend
+  body: json
+  auth: none
+}
+
+headers {
+  apikey: {{supabaseAnonKey}}
+  Content-Type: application/json
+}
+
+body:json {
+  {
+    "type": "signup",
+    "email": "user@example.com"
+  }
+}
+
+docs {
+  # Resend Confirmation
+  
+  Resend a confirmation email for signup or email change.
+  
+  ## Request Body
+  
+  | Field | Type | Required | Description |
+  |-------|------|----------|-------------|
+  | type | string | Yes | Type: signup, email_change |
+  | email | string | Yes | User's email address |
+  
+  ## Resend Signup Confirmation
+  
+  ```json
+  {
+    "type": "signup",
+    "email": "user@example.com"
+  }
+  ```
+  
+  ## Resend Email Change Confirmation
+  
+  ```json
+  {
+    "type": "email_change",
+    "email": "newemail@example.com"
+  }
+  ```
+  
+  ## Response (200 OK)
+  
+  ```json
+  {
+    "message_id": "msg_uuid"
+  }
+  ```
+  
+  ## Error Responses
+  
+  - **400**: Invalid email
+  - **429**: Rate limit exceeded
+}
+

@@ -1,0 +1,16 @@
+---
+description: Docs + Bruno collection hygiene (keep docs aligned with code)
+globs: "**/*.{md,bru,json}"
+alwaysApply: false
+---
+
+## Docs
+
+- Keep documentation aligned with implementation (avoid “drift”).
+- When documenting env vars or endpoints, mirror the actual names/paths used in `src/`.
+- If docs describe behavior that differs from code, prefer updating docs to match the code unless the change request says otherwise.
+
+## Bruno collections (`bruno-collection/`)
+
+- Keep request names and foldering consistent with the existing collection structure.
+- Prefer stable endpoint paths that match `src/routes/` mounting (e.g. `/api/v1/...`).
