@@ -1,5 +1,19 @@
 import sgMail from '@sendgrid/mail';
-sgMail.setApiKey(process.env.SENDGRID_API_KEY);
+
+// Validate and set SendGrid API key
+const sendGridApiKey = process.env.SENDGRID_API_KEY;
+
+if (!sendGridApiKey) {
+  console.error('[SENDGRID] Error: SENDGRID_API_KEY environment variable is not set');
+  console.error('[SENDGRID] Please add SENDGRID_API_KEY to your .env file');
+} else if (!sendGridApiKey.startsWith('SG.')) {
+  console.error('[SENDGRID] Error: SENDGRID_API_KEY does not start with "SG."');
+  console.error('[SENDGRID] Invalid API key format. SendGrid API keys must start with "SG."');
+  console.error('[SENDGRID] Current key starts with:', `${sendGridApiKey.substring(0, 5)}...`);
+} else {
+  sgMail.setApiKey(sendGridApiKey);
+  console.log('[SENDGRID] API key configured successfully');
+}
 
 export const sendActivationEmail = async (recipientEmail, activationLink, userName) => {
   const msg = {
@@ -17,13 +31,14 @@ export const sendActivationEmail = async (recipientEmail, activationLink, userNa
       <p>Best regards,<br/>The Second Beat Team</p>
     `,
   };
-  
-  sgMail.send(msg)
+
+  sgMail
+    .send(msg)
     .then(() => console.log('Activation email sent successfully'))
-    .catch(error => console.error('Error sending activation email:', error));
+    .catch((error) => console.error('Error sending activation email:', error));
 };
 
-export const sendResetPasswordCode = async (recipientEmail,resetPasswordCode) => {
+export const sendResetPasswordCode = async (recipientEmail, resetPasswordCode) => {
   const msg = {
     to: recipientEmail,
     from: 'support@secondbeat.in', // Use the email address you verified with SendGrid
@@ -44,8 +59,9 @@ export const sendResetPasswordCode = async (recipientEmail,resetPasswordCode) =>
         <p>Thank you,<br>The Second Beat Team</p>
     `,
   };
-  
-  sgMail.send(msg)
+
+  sgMail
+    .send(msg)
     .then(() => console.log('Reset Password code email sent successfully'))
-    .catch(error => console.error('Error sending Reset Password Code email:', error));
+    .catch((error) => console.error('Error sending Reset Password Code email:', error));
 };
