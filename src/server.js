@@ -2,11 +2,10 @@ import express from 'express';
 import helmet from 'helmet';
 import {} from 'dotenv/config';
 import routes from './routes/apiroutes.js';
-
+import logger from './config/logger.js';
 
 const app = express();
 const PORT = process.env.PORT;
-const authenticateToken = () => {};
 
 // To display the global variables defined in codeGen js file. 
 
@@ -24,7 +23,16 @@ app.get('/', (req, res) => {
 
 app.use('/api/v1', routes);
 
-// Start serverls
-app.listen(PORT, () => {
-  console.log(`Server is running on port ${PORT}`);
-});
+export default app;
+
+export function start() {
+  const server = app.listen(PORT, () => {
+    logger.info(`Server is running on port ${PORT}`);
+  });
+  return server;
+}
+
+// Auto-start when run directly (ESM equivalent of `if (require.main === module)`)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  start();
+}
