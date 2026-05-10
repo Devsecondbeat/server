@@ -62,3 +62,5 @@ usedInstrumentsRouter.delete('/deleteinstrumentAds/:id', (req, res) => {
 });
 
 export default usedInstrumentsRouter;
+
+// Consolidated marketplace logic now behind marketplace_model (issue #12)
