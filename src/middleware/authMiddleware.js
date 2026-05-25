@@ -61,7 +61,7 @@ export const verifySupabaseTokenMiddleware = async (req, res, next) => {
     }
 
     // Attach user information to request object
-    req.user = user;
+    req.user = { ...user, sub: user.id };
     req.supabaseToken = token;
 
     logger.debug('Supabase token verified for user:', user.id);

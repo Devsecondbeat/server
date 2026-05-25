@@ -1,6 +1,7 @@
 import express from 'express';
 import helmet from 'helmet';
 import cors from 'cors';
+import { pathToFileURL } from 'url';
 import {} from 'dotenv/config';
 import routes from './routes/apiroutes.js';
 import { getConnectionType, isConnectionHealthy } from './config/database.js';
@@ -76,6 +77,6 @@ export function start() {
 }
 
 // Auto-start when run directly (ESM equivalent of `if (require.main === module)`)
-if (import.meta.url === `file://${process.argv[1]}`) {
+if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   start();
 }
