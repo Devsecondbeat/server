@@ -66,7 +66,16 @@ app.get('/health/database', (req, res) => {
 // API routes
 app.use('/api/v1', routes);
 
-// Start server
-app.listen(PORT, () => {
-  logger.info(`Server is running on port ${PORT}`);
-});
+export default app;
+
+export function start() {
+  const server = app.listen(PORT, () => {
+    logger.info(`Server is running on port ${PORT}`);
+  });
+  return server;
+}
+
+// Auto-start when run directly (ESM equivalent of `if (require.main === module)`)
+if (import.meta.url === `file://${process.argv[1]}`) {
+  start();
+}
