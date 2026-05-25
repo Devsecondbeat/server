@@ -10,8 +10,6 @@ import logger from './config/logger.js';
 const app = express();
 const { PORT } = process.env;
 
-// To display the global variables defined in codeGen js file.
-
 app.use(helmet());
 
 // CORS configuration

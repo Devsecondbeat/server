@@ -1,9 +1,9 @@
 import { createClient } from '@supabase/supabase-js';
 import logger from './logger.js';
 
-// Initialize Supabase client for authentication
 const supabaseUrl = process.env.SUPABASE_URL;
 const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
+const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
 
 if (!supabaseUrl || !supabaseAnonKey) {
   logger.warn(
@@ -12,9 +12,23 @@ if (!supabaseUrl || !supabaseAnonKey) {
   logger.warn('Please set SUPABASE_URL and SUPABASE_ANON_KEY in your .env file');
 }
 
-// Create Supabase client instance
+if (!supabaseServiceRoleKey) {
+  logger.warn(
+    'SUPABASE_SERVICE_ROLE_KEY is not configured. Signup activation and password reset emails will not work.',
+  );
+}
+
 export const supabaseClient = supabaseUrl && supabaseAnonKey
   ? createClient(supabaseUrl, supabaseAnonKey, {
+      auth: {
+        autoRefreshToken: false,
+        persistSession: false,
+      },
+    })
+  : null;
+
+export const supabaseAdminClient = supabaseUrl && supabaseServiceRoleKey
+  ? createClient(supabaseUrl, supabaseServiceRoleKey, {
       auth: {
         autoRefreshToken: false,
         persistSession: false,
@@ -34,7 +48,6 @@ export const verifySupabaseToken = async (token) => {
   }
 
   try {
-    // Use Supabase's getUser method to verify the token
     const {
       data: { user },
       error,
@@ -59,4 +72,3 @@ export const verifySupabaseToken = async (token) => {
 };
 
 export default supabaseClient;
-

@@ -6,8 +6,29 @@ import {
   updateInstrumentAds,
   deleteInstrumentAds,
   getAdOwner,
+  INVALID_IMAGE_IDS,
 } from '../models/marketplace_model.js';
 import logger from '../config/logger.js';
+
+const handleMarketplaceError = (res, error, next) => {
+  if (error.code === INVALID_IMAGE_IDS) {
+    return res.status(400).json({
+      error: error.message,
+      invalidIds: error.invalidIds,
+    });
+  }
+
+  if (error.message.includes('Maximum') || error.message.includes('instrument_type must be')) {
+    return res.status(400).json({ error: error.message });
+  }
+
+  if (error.message.includes('Cloudflare')) {
+    logger.error('Cloudflare service error', { error: error.message });
+    return res.status(502).json({ error: 'Image service unavailable' });
+  }
+
+  return next(error);
+};
 
 export const getinstrumentMakes = async (req, res, next) => {
   try {
@@ -22,6 +43,10 @@ export const getinstrumentMakes = async (req, res, next) => {
 
 export const createinstrumentAds = async (req, res, next) => {
   try {
+    if (req.body.imageIds !== undefined && !Array.isArray(req.body.imageIds)) {
+      return res.status(400).json({ error: 'imageIds must be an array' });
+    }
+
     const adData = {
       ...req.body,
       user_id: req.user.sub, // Use authenticated user's UUID from JWT
@@ -33,7 +58,7 @@ export const createinstrumentAds = async (req, res, next) => {
     });
   } catch (error) {
     logger.error('Error creating instrument ad:', error);
-    next(error);
+    return handleMarketplaceError(res, error, next);
   }
 };
 
@@ -74,6 +99,10 @@ export const updateinstrumentAds = async (req, res, next) => {
       return res.status(400).json({ error: 'Invalid ad ID' });
     }
 
+    if (req.body.imageIds !== undefined && !Array.isArray(req.body.imageIds)) {
+      return res.status(400).json({ error: 'imageIds must be an array' });
+    }
+
     // Verify ownership - user can only update their own ads
     const ad = await getAdOwner(adId);
     if (!ad) {
@@ -91,7 +120,7 @@ export const updateinstrumentAds = async (req, res, next) => {
     });
   } catch (error) {
     logger.error('Error updating instrument ad:', error);
-    next(error);
+    return handleMarketplaceError(res, error, next);
   }
 };
 

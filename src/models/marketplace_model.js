@@ -1,8 +1,24 @@
 import { getPool } from '../config/database.js';
 import logger from '../config/logger.js';
-import { buildDeliveryUrl } from '../services/cloudflareImages.js';
+import { buildDeliveryUrl, validateImageIds } from '../services/cloudflareImages.js';
 
 const MAX_IMAGES_PER_AD = 5;
+
+export const INVALID_IMAGE_IDS = 'INVALID_IMAGE_IDS';
+
+const assertValidImageIds = async (imageIds) => {
+  if (!imageIds || imageIds.length === 0) {
+    return;
+  }
+
+  const result = await validateImageIds(imageIds);
+  if (!result.valid) {
+    const error = new Error('One or more image IDs are invalid or not uploaded to Cloudflare');
+    error.code = INVALID_IMAGE_IDS;
+    error.invalidIds = result.invalidIds;
+    throw error;
+  }
+};
 
 const addDeliveryUrls = (image) => ({
   ...image,
@@ -146,6 +162,8 @@ const createInstrumentAds = async (adData) => {
       );
     }
 
+    await assertValidImageIds(imageIds);
+
     await client.query('BEGIN');
 
     const result = await client.query(
@@ -255,6 +273,10 @@ const updateInstrumentAds = async (adId, updateData) => {
       condition,
       imageIds,
     } = updateData;
+
+    if (imageIds !== undefined) {
+      await assertValidImageIds(imageIds);
+    }
 
     await client.query('BEGIN');
 
@@ -369,6 +391,8 @@ const updateAdImages = async (adId, imageIds) => {
   const client = await pool.connect();
 
   try {
+    await assertValidImageIds(imageIds);
+
     await client.query('BEGIN');
     const existingImages = await getAdImagesWithClient(client, adId);
     const updatedImages = await syncAdImages(client, adId, imageIds);
