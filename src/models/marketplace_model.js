@@ -122,6 +122,8 @@ const getInstrumentMakes = async () => {
   }
 };
 
+const VALID_INSTRUMENT_TYPES = ['guitar', 'drums', 'piano', 'accessories'];
+
 const createInstrumentAds = async (adData) => {
   const pool = getPool();
   const client = await pool.connect();
@@ -134,16 +136,23 @@ const createInstrumentAds = async (adData) => {
       description,
       price,
       condition,
+      instrument_type: instrumentType,
       imageIds,
     } = adData;
+
+    if (instrumentType && !VALID_INSTRUMENT_TYPES.includes(instrumentType)) {
+      throw new Error(
+        `instrument_type must be one of: ${VALID_INSTRUMENT_TYPES.join(', ')}`,
+      );
+    }
 
     await client.query('BEGIN');
 
     const result = await client.query(
-      `INSERT INTO used_instrument_ads (user_id, make_id, name, description, price, condition)
-       VALUES($1, $2, $3, $4, $5, $6)
+      `INSERT INTO used_instrument_ads (user_id, make_id, name, description, price, condition, instrument_type)
+       VALUES($1, $2, $3, $4, $5, $6, $7)
        RETURNING *`,
-      [userId, makeId, name, description, price, condition],
+      [userId, makeId, name, description, price, condition, instrumentType ?? null],
     );
 
     const createdAd = result.rows[0];
@@ -164,10 +173,40 @@ const createInstrumentAds = async (adData) => {
   }
 };
 
-const getInstrumentAds = async () => {
+const getInstrumentAds = async (filters = {}) => {
   try {
+    const { type, make_id: makeId, condition } = filters;
     const pool = getPool();
-    const adsResult = await pool.query('SELECT * FROM used_instrument_ads ORDER BY created_at DESC');
+    const conditions = [];
+    const params = [];
+    let paramIndex = 1;
+
+    if (type) {
+      if (!VALID_INSTRUMENT_TYPES.includes(type)) {
+        throw new Error(
+          `type must be one of: ${VALID_INSTRUMENT_TYPES.join(', ')}`,
+        );
+      }
+      conditions.push(`instrument_type = $${paramIndex}`);
+      params.push(type);
+      paramIndex += 1;
+    }
+
+    if (makeId !== undefined && makeId !== null && makeId !== '') {
+      conditions.push(`make_id = $${paramIndex}`);
+      params.push(Number(makeId));
+      paramIndex += 1;
+    }
+
+    if (condition) {
+      conditions.push(`LOWER(condition) = LOWER($${paramIndex})`);
+      params.push(condition);
+      paramIndex += 1;
+    }
+
+    const whereClause = conditions.length > 0 ? `WHERE ${conditions.join(' AND ')}` : '';
+    const query = `SELECT * FROM used_instrument_ads ${whereClause} ORDER BY created_at DESC`;
+    const adsResult = await pool.query(query, params);
     const ads = adsResult.rows;
     const imagesByAdId = await getImagesForAds(pool, ads);
 
@@ -176,7 +215,7 @@ const getInstrumentAds = async () => {
       images: imagesByAdId[ad.id] || [],
     }));
   } catch (error) {
-    logger.error('Error fetching instrument ads', { error: error.message, stack: error.stack });
+    logger.error('Error fetching instrument ads', { error: error.message, stack: error.stack, filters });
     throw error;
   }
 };
@@ -388,6 +427,7 @@ const getAdOwner = async (adId) => {
 
 export {
   MAX_IMAGES_PER_AD,
+  VALID_INSTRUMENT_TYPES,
   getInstrumentMakes,
   createInstrumentAds,
   getInstrumentAds,

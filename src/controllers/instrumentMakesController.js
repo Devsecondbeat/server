@@ -39,7 +39,12 @@ export const createinstrumentAds = async (req, res, next) => {
 
 export const getinstrumentAds = async (req, res, next) => {
   try {
-    const instrumentAds = await getInstrumentAds();
+    const { type, make_id: makeId, condition } = req.query;
+    const instrumentAds = await getInstrumentAds({
+      type,
+      make_id: makeId,
+      condition,
+    });
     return res.status(200).json(instrumentAds);
   } catch (error) {
     logger.error('Error getting instrument ads:', error);
