@@ -6,50 +6,48 @@ import {
   updateInstrumentAds,
   deleteInstrumentAds,
   getAdOwner,
-  INVALID_IMAGE_IDS,
+  instrumentMakeExists,
 } from '../models/marketplace_model.js';
 import logger from '../config/logger.js';
+import AppError from '../Utils/AppError.js';
+import { validateCreateAdBody, validateUpdateAdBody } from '../validators/adValidator.js';
 
-const handleMarketplaceError = (res, error, next) => {
-  if (error.code === INVALID_IMAGE_IDS) {
-    return res.status(400).json({
-      error: error.message,
-      invalidIds: error.invalidIds,
-    });
-  }
-
-  if (error.message.includes('Maximum') || error.message.includes('instrument_type must be')) {
-    return res.status(400).json({ error: error.message });
-  }
-
-  if (error.message.includes('Cloudflare')) {
-    logger.error('Cloudflare service error', { error: error.message });
-    return res.status(502).json({ error: 'Image service unavailable' });
-  }
-
-  return next(error);
+const throwValidationErrors = (errors) => {
+  throw new AppError(errors[0], {
+    status: 400,
+    code: 'VALIDATION_ERROR',
+    details: { errors },
+  });
 };
 
 export const getinstrumentMakes = async (req, res, next) => {
   try {
-    // get all instrument makes
     const instrumentMakes = await getInstrumentMakes();
     return res.status(200).json(instrumentMakes);
   } catch (error) {
-    logger.error('Error getting instrument makes:', error);
-    next(error);
+    logger.error('Error getting instrument makes', { error: error.message });
+    return next(error);
   }
 };
 
 export const createinstrumentAds = async (req, res, next) => {
   try {
-    if (req.body.imageIds !== undefined && !Array.isArray(req.body.imageIds)) {
-      return res.status(400).json({ error: 'imageIds must be an array' });
+    const validationErrors = validateCreateAdBody(req.body);
+    if (validationErrors.length > 0) {
+      throwValidationErrors(validationErrors);
+    }
+
+    const makeId = Number(req.body.make_id);
+    const makeExists = await instrumentMakeExists(makeId);
+    if (!makeExists) {
+      throw new AppError('make_id not found', { status: 400, code: 'MAKE_NOT_FOUND' });
     }
 
     const adData = {
       ...req.body,
-      user_id: req.user.sub, // Use authenticated user's UUID from JWT
+      make_id: makeId,
+      price: Number(req.body.price),
+      user_id: req.user.sub,
     };
     const createdAd = await createInstrumentAds(adData);
     return res.status(201).json({
@@ -57,8 +55,8 @@ export const createinstrumentAds = async (req, res, next) => {
       data: createdAd,
     });
   } catch (error) {
-    logger.error('Error creating instrument ad:', error);
-    return handleMarketplaceError(res, error, next);
+    logger.error('Error creating instrument ad', { error: error.message });
+    return next(error);
   }
 };
 
@@ -72,23 +70,22 @@ export const getinstrumentAds = async (req, res, next) => {
     });
     return res.status(200).json(instrumentAds);
   } catch (error) {
-    logger.error('Error getting instrument ads:', error);
-    next(error);
+    logger.error('Error getting instrument ads', { error: error.message });
+    return next(error);
   }
 };
 
 export const getinstrumentAdsbyUser = async (req, res, next) => {
   try {
     const userId = req.params.id;
-    // UUID validation
     const uuidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
     if (!uuidRegex.test(userId)) {
-      return res.status(400).json({ error: 'Invalid user ID format' });
+      throw new AppError('Invalid user ID format', { status: 400, code: 'INVALID_USER_ID' });
     }
     const instrumentAdsbyUser = await getInstrumentAdsbyUser(userId);
     return res.status(200).json(instrumentAdsbyUser);
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
 
@@ -96,31 +93,34 @@ export const updateinstrumentAds = async (req, res, next) => {
   try {
     const adId = parseInt(req.params.id, 10);
     if (Number.isNaN(adId)) {
-      return res.status(400).json({ error: 'Invalid ad ID' });
+      throw new AppError('Invalid ad ID', { status: 400, code: 'INVALID_AD_ID' });
     }
 
-    if (req.body.imageIds !== undefined && !Array.isArray(req.body.imageIds)) {
-      return res.status(400).json({ error: 'imageIds must be an array' });
+    const validationErrors = validateUpdateAdBody(req.body);
+    if (validationErrors.length > 0) {
+      throwValidationErrors(validationErrors);
     }
 
-    // Verify ownership - user can only update their own ads
     const ad = await getAdOwner(adId);
     if (!ad) {
-      return res.status(404).json({ error: 'Ad not found' });
+      throw new AppError('Ad not found', { status: 404, code: 'AD_NOT_FOUND' });
     }
     if (ad.user_id !== req.user.sub) {
-      return res.status(403).json({ error: 'Unauthorized to update this ad' });
+      throw new AppError('Unauthorized to update this ad', { status: 403, code: 'FORBIDDEN' });
     }
 
-    const updateData = req.body;
+    const updateData = {
+      ...req.body,
+      ...(req.body.price !== undefined ? { price: Number(req.body.price) } : {}),
+    };
     const updatedAd = await updateInstrumentAds(adId, updateData);
     return res.status(200).json({
       message: `Ad modified with ID: ${adId}`,
       data: updatedAd,
     });
   } catch (error) {
-    logger.error('Error updating instrument ad:', error);
-    return handleMarketplaceError(res, error, next);
+    logger.error('Error updating instrument ad', { error: error.message });
+    return next(error);
   }
 };
 
@@ -128,16 +128,15 @@ export const deleteinstrumentAds = async (req, res, next) => {
   try {
     const adId = parseInt(req.params.id, 10);
     if (Number.isNaN(adId)) {
-      return res.status(400).json({ error: 'Invalid ad ID' });
+      throw new AppError('Invalid ad ID', { status: 400, code: 'INVALID_AD_ID' });
     }
 
-    // Verify ownership - user can only delete their own ads
     const ad = await getAdOwner(adId);
     if (!ad) {
-      return res.status(404).json({ error: 'Ad not found' });
+      throw new AppError('Ad not found', { status: 404, code: 'AD_NOT_FOUND' });
     }
     if (ad.user_id !== req.user.sub) {
-      return res.status(403).json({ error: 'Unauthorized to delete this ad' });
+      throw new AppError('Unauthorized to delete this ad', { status: 403, code: 'FORBIDDEN' });
     }
 
     const deletedAd = await deleteInstrumentAds(adId);
@@ -146,7 +145,7 @@ export const deleteinstrumentAds = async (req, res, next) => {
       data: deletedAd,
     });
   } catch (error) {
-    logger.error('Error deleting instrument ad:', error);
-    next(error);
+    logger.error('Error deleting instrument ad', { error: error.message });
+    return next(error);
   }
 };

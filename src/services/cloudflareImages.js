@@ -11,7 +11,10 @@ const getCloudflareConfig = () => {
   const imagesHash = process.env.CLOUDFLARE_IMAGES_HASH;
 
   if (!accountId || !apiToken) {
-    throw new Error('Cloudflare Images configuration missing. Set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN environment variables.');
+    throw new Error(
+      'Cloudflare Images configuration missing. '
+      + 'Set CLOUDFLARE_ACCOUNT_ID and CLOUDFLARE_API_TOKEN environment variables.',
+    );
   }
 
   return { accountId, apiToken, imagesHash };
@@ -207,4 +210,3 @@ export {
   imageExists,
   validateImageIds,
 };
-

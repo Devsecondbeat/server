@@ -18,23 +18,21 @@ if (!supabaseServiceRoleKey) {
   );
 }
 
-export const supabaseClient = supabaseUrl && supabaseAnonKey
-  ? createClient(supabaseUrl, supabaseAnonKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
-  : null;
+const createSupabaseClient = (key) => {
+  if (!supabaseUrl || !key) {
+    return null;
+  }
 
-export const supabaseAdminClient = supabaseUrl && supabaseServiceRoleKey
-  ? createClient(supabaseUrl, supabaseServiceRoleKey, {
-      auth: {
-        autoRefreshToken: false,
-        persistSession: false,
-      },
-    })
-  : null;
+  return createClient(supabaseUrl, key, {
+    auth: {
+      autoRefreshToken: false,
+      persistSession: false,
+    },
+  });
+};
+
+export const supabaseClient = createSupabaseClient(supabaseAnonKey);
+export const supabaseAdminClient = createSupabaseClient(supabaseServiceRoleKey);
 
 /**
  * Verify a Supabase JWT token

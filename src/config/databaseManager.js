@@ -1,15 +1,6 @@
 import pkg from 'pg';
 import fs from 'fs';
-
-// Logger - replace with Winston logger import if available
-// import logger from './logger.js';
-// For now, using console as fallback
-const logger = {
-  info: (...args) => console.log('[DB-MANAGER]', ...args),
-  warn: (...args) => console.warn('[DB-MANAGER]', ...args),
-  error: (...args) => console.error('[DB-MANAGER]', ...args),
-  debug: (...args) => console.debug('[DB-MANAGER]', ...args),
-};
+import logger from './logger.js';
 
 const { Pool } = pkg;
 
@@ -156,7 +147,8 @@ const initializeConnection = async (type, maxRetries = null) => {
 
   if (missingFields.length > 0) {
     logger.warn(
-      `Missing required configuration for ${type} connection. Missing environment variables: ${missingFields.join(', ')}`,
+      `Missing required configuration for ${type} connection. `
+      + `Missing environment variables: ${missingFields.join(', ')}`,
     );
     return null;
   }
@@ -169,6 +161,7 @@ const initializeConnection = async (type, maxRetries = null) => {
     connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '5000', 10),
   };
 
+  /* eslint-disable no-await-in-loop -- connection retries require sequential attempts */
   for (let attempt = 1; attempt <= retries; attempt += 1) {
     let pool = null;
     try {
@@ -230,9 +223,12 @@ const initializeConnection = async (type, maxRetries = null) => {
     // Exponential backoff: 1s, 2s, 4s
     if (attempt < retries) {
       const delay = 2 ** (attempt - 1) * 1000;
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await new Promise((resolve) => {
+        setTimeout(resolve, delay);
+      });
     }
   }
+  /* eslint-enable no-await-in-loop */
 
   logger.error(`Failed to connect to ${type} after ${retries} attempts`);
   return null;
@@ -337,7 +333,8 @@ const startHealthChecks = () => {
 const getPool = () => {
   if (!connectionState.currentPool) {
     throw new Error(
-      'No database connection available. Please check your database configuration and ensure connection manager initialized successfully.',
+      'No database connection available. Please check your database configuration '
+      + 'and ensure connection manager initialized successfully.',
     );
   }
   return connectionState.currentPool;

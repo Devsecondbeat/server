@@ -7,51 +7,36 @@ import {
   getAdOwner,
 } from '../models/marketplace_model.js';
 import logger from '../config/logger.js';
+import AppError from '../Utils/AppError.js';
 
-/**
- * Get signed upload URLs from Cloudflare
- * POST /instruments/images/upload-urls
- * Body: { count: 1-5 }
- */
 export const getUploadUrls = async (req, res, next) => {
   try {
     const { count } = req.body;
 
-    // Validate count
     if (!count || typeof count !== 'number' || count < 1 || count > MAX_IMAGES_PER_AD) {
-      return res.status(400).json({
-        error: `Count must be a number between 1 and ${MAX_IMAGES_PER_AD}`,
+      throw new AppError(`Count must be a number between 1 and ${MAX_IMAGES_PER_AD}`, {
+        status: 400,
+        code: 'VALIDATION_ERROR',
       });
     }
 
     const uploadData = await getDirectUploadUrls(count);
 
     logger.info('Upload URLs generated', { count });
-    return res.status(200).json({
-      uploadUrls: uploadData,
-    });
+    return res.status(200).json({ uploadUrls: uploadData });
   } catch (error) {
-    if (error.message.includes('Cloudflare')) {
-      logger.error('Cloudflare service error', { error: error.message });
-      return res.status(502).json({ error: 'Image service unavailable' });
-    }
-    next(error);
+    return next(error);
   }
 };
-/**
- * Get all images for a specific ad
- * GET /instruments/ads/:adId/images
- */
+
 export const getImagesForAd = async (req, res, next) => {
   try {
     const adId = parseInt(req.params.adId, 10);
     if (Number.isNaN(adId)) {
-      return res.status(400).json({ error: 'Invalid ad ID' });
+      throw new AppError('Invalid ad ID', { status: 400, code: 'INVALID_AD_ID' });
     }
 
     const images = await getAdImages(adId);
-
-    // Build delivery URLs for each image
     const imagesWithUrls = images.map((img) => ({
       ...img,
       urls: {
@@ -63,43 +48,37 @@ export const getImagesForAd = async (req, res, next) => {
 
     return res.status(200).json(imagesWithUrls);
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
-/**
- * Delete a single image from an ad
- * DELETE /instruments/ads/:adId/images/:imageId
- */
+
 export const removeAdImage = async (req, res, next) => {
   try {
     const adId = parseInt(req.params.adId, 10);
     const { imageId } = req.params;
 
     if (Number.isNaN(adId)) {
-      return res.status(400).json({ error: 'Invalid ad ID' });
+      throw new AppError('Invalid ad ID', { status: 400, code: 'INVALID_AD_ID' });
     }
 
     if (!imageId) {
-      return res.status(400).json({ error: 'Invalid image ID' });
+      throw new AppError('Invalid image ID', { status: 400, code: 'INVALID_IMAGE_ID' });
     }
 
-    // Check if ad exists and get owner
     const ad = await getAdOwner(adId);
     if (!ad) {
-      return res.status(404).json({ error: 'Ad not found' });
+      throw new AppError('Ad not found', { status: 404, code: 'AD_NOT_FOUND' });
     }
 
     if (ad.user_id !== req.user.sub) {
-      return res.status(403).json({ error: 'Unauthorized to delete this image' });
+      throw new AppError('Unauthorized to delete this image', { status: 403, code: 'FORBIDDEN' });
     }
 
-    // Delete from database
     const deleted = await deleteAdImage(adId, imageId);
     if (!deleted) {
-      return res.status(404).json({ error: 'Image not found for this ad' });
+      throw new AppError('Image not found for this ad', { status: 404, code: 'IMAGE_NOT_FOUND' });
     }
 
-    // Delete from Cloudflare (best effort, don't fail if this fails)
     try {
       await deleteImage(imageId);
     } catch (cfError) {
@@ -112,28 +91,22 @@ export const removeAdImage = async (req, res, next) => {
       data: deleted,
     });
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };
 
-/**
- * Check if more images can be added to an ad
- * GET /instruments/ads/:adId/images/can-add
- * Query: ?count=N
- */
 export const checkCanAddImages = async (req, res, next) => {
   try {
     const adId = parseInt(req.params.adId, 10);
     const count = parseInt(req.query.count, 10) || 1;
 
     if (Number.isNaN(adId)) {
-      return res.status(400).json({ error: 'Invalid ad ID' });
+      throw new AppError('Invalid ad ID', { status: 400, code: 'INVALID_AD_ID' });
     }
 
     const result = await canAddImages(adId, count);
-
     return res.status(200).json(result);
   } catch (error) {
-    next(error);
+    return next(error);
   }
 };

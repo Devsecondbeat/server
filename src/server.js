@@ -6,33 +6,35 @@ import {} from 'dotenv/config';
 import routes from './routes/apiroutes.js';
 import { getConnectionType, isConnectionHealthy } from './config/database.js';
 import logger from './config/logger.js';
+import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
 
 const app = express();
 const { PORT } = process.env;
+const isProduction = process.env.NODE_ENV === 'production';
+const corsOrigin = process.env.CORS_ORIGIN;
+
+if (isProduction && !corsOrigin) {
+  logger.warn('CORS_ORIGIN is not set in production; cross-origin requests will be blocked');
+}
 
 app.use(helmet());
 
-// CORS configuration
 app.use(
   cors({
-    origin: process.env.CORS_ORIGIN || '*',
+    origin: isProduction ? corsOrigin : (corsOrigin || '*'),
     credentials: true,
     methods: ['GET', 'POST', 'PUT', 'DELETE', 'PATCH', 'OPTIONS'],
     allowedHeaders: ['Content-Type', 'Authorization'],
-  })
+  }),
 );
 
-// Middleware to parse JSON bodies
-app.use(express.json());
-
-// parse incoming Request Object if object, with nested objects, or generally any type.
-app.use(express.urlencoded({ extended: true }));
+app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '100kb' }));
+app.use(express.urlencoded({ extended: true, limit: process.env.JSON_BODY_LIMIT || '100kb' }));
 
 app.get('/', (req, res) => {
   res.json({ message: 'Hello, this is the root API endpoint!' });
 });
 
-// Database health check endpoint
 app.get('/health/database', (req, res) => {
   try {
     const connectionType = getConnectionType();
@@ -62,8 +64,10 @@ app.get('/health/database', (req, res) => {
   }
 });
 
-// API routes
 app.use('/api/v1', routes);
+
+app.use(notFoundHandler);
+app.use(errorHandler);
 
 export default app;
 
@@ -74,7 +78,6 @@ export function start() {
   return server;
 }
 
-// Auto-start when run directly (ESM equivalent of `if (require.main === module)`)
 if (import.meta.url === pathToFileURL(process.argv[1]).href) {
   start();
 }

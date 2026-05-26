@@ -1,6 +1,6 @@
 import { getPool } from '../config/database.js';
 import logger from '../config/logger.js';
-import { buildDeliveryUrl, validateImageIds } from '../services/cloudflareImages.js';
+import { buildDeliveryUrl, validateImageIds, deleteImages } from '../services/cloudflareImages.js';
 
 const MAX_IMAGES_PER_AD = 5;
 
@@ -316,14 +316,57 @@ const updateInstrumentAds = async (adId, updateData) => {
 };
 
 const deleteInstrumentAds = async (adId) => {
+  const pool = getPool();
+  const client = await pool.connect();
+
+  try {
+    await client.query('BEGIN');
+
+    const imagesResult = await client.query(
+      'DELETE FROM ad_images WHERE ad_id = $1 RETURNING cloudflare_image_id',
+      [adId],
+    );
+    const adResult = await client.query(
+      'DELETE FROM used_instrument_ads WHERE id = $1 RETURNING *',
+      [adId],
+    );
+
+    if (adResult.rowCount === 0) {
+      await client.query('ROLLBACK');
+      return null;
+    }
+
+    await client.query('COMMIT');
+
+    const deletedImageIds = imagesResult.rows.map((row) => row.cloudflare_image_id);
+    if (deletedImageIds.length > 0) {
+      try {
+        await deleteImages(deletedImageIds);
+      } catch (cloudflareError) {
+        logger.warn('Failed to delete some Cloudflare images during ad delete', {
+          adId,
+          error: cloudflareError.message,
+        });
+      }
+    }
+
+    return adResult.rows[0];
+  } catch (error) {
+    await client.query('ROLLBACK');
+    logger.error('Error deleting instrument ad', { error: error.message, stack: error.stack, adId });
+    throw error;
+  } finally {
+    client.release();
+  }
+};
+
+const instrumentMakeExists = async (makeId) => {
   try {
     const pool = getPool();
-    const result = await pool.query('delete from used_instrument_ads where id = $1 returning *', [
-      adId,
-    ]);
-    return result.rows[0];
+    const result = await pool.query('SELECT 1 FROM instrument_makes WHERE id = $1', [makeId]);
+    return result.rowCount > 0;
   } catch (error) {
-    logger.error('Error deleting instrument ad', { error: error.message, stack: error.stack, adId });
+    logger.error('Error checking instrument make', { error: error.message, makeId });
     throw error;
   }
 };
@@ -465,4 +508,5 @@ export {
   updateAdImages,
   canAddImages,
   getAdOwner,
+  instrumentMakeExists,
 };

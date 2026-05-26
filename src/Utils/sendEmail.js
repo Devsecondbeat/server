@@ -41,12 +41,16 @@ export const sendActivationEmail = async (recipientEmail, activationLink, userNa
     subject: 'Activate Your Account - Second Beat',
     html: `
       <p>Dear ${displayName},</p>
-      <p>Thank you for registering with Second Beat! To activate your account and gain access to all of our features, please click the link below:</p>
+      <p>Thank you for registering with Second Beat! To activate your account and gain access
+      to all of our features, please click the link below:</p>
       <p><a href="${activationLink}">${activationLink}</a></p>
       <p>If you cannot click the link, please copy and paste the following URL into your browser:</p>
       <p>${activationLink}</p>
-      <p>Please note that this activation link is valid for a limited time only. If you did not request this activation or believe it to be in error, you can safely ignore this email.</p>
-      <p>Welcome to Second Beat! We're excited to have you join us. If you have any questions or need assistance, feel free to contact our support team.</p>
+      <p>Please note that this activation link is valid for a limited time only.
+      If you did not request this activation or believe it to be in error,
+      you can safely ignore this email.</p>
+      <p>Welcome to Second Beat! We're excited to have you join us.
+      If you have any questions or need assistance, feel free to contact our support team.</p>
       <p>Best regards,<br/>The Second Beat Team</p>
     `,
   });
@@ -58,11 +62,13 @@ export const sendPasswordResetEmail = async (recipientEmail, resetLink) => {
     subject: 'Reset Your Password - Second Beat',
     html: `
       <p>Dear User,</p>
-      <p>We received a request to reset your password for your Second Beat account. Click the link below to choose a new password:</p>
+      <p>We received a request to reset your password for your Second Beat account.
+      Click the link below to choose a new password:</p>
       <p><a href="${resetLink}">${resetLink}</a></p>
       <p>If you cannot click the link, please copy and paste the following URL into your browser:</p>
       <p>${resetLink}</p>
-      <p>If you did not request a password reset, please ignore this email or contact our support team if you have any concerns.</p>
+      <p>If you did not request a password reset, please ignore this email
+      or contact our support team if you have any concerns.</p>
       <p>For security reasons, this link will expire after a limited time.</p>
       <p>Thank you,<br/>The Second Beat Team</p>
     `,
