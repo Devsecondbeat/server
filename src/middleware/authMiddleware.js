@@ -9,9 +9,9 @@ export const verifyToken = (req, res, next) => {
   try {
     const decoded = jwt.verify(token, process.env.Token_Secret_Key);
     req.emailID = decoded.emailID;
-    next();
+    return next();
   } catch (error) {
-    res.status(401).json({ error: 'Invalid token' });
+    return res.status(401).json({ error: 'Invalid token' });
   }
 };
 
@@ -63,7 +63,7 @@ export const createVerifySupabaseTokenMiddleware = ({
     req.supabaseToken = token;
 
     loggerInstance.debug('Supabase token verified for user:', user.id);
-    next();
+    return next();
   } catch (error) {
     loggerInstance.error('Error in Supabase token verification middleware:', error);
     return res.status(500).json({
