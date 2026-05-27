@@ -23,4 +23,5 @@ uploads/
 *.md
 !README.md
 !CONTRIBUTING.md
+!docs/migrations/README.md
 .husky/

@@ -6,6 +6,7 @@
   "scripts": {
     "start": "nodemon src/server.js",
     "start:prod": "node src/server.js",
+    "db:migrate": "node scripts/apply-migrations.js",
     "test": "vitest run",
     "test:watch": "vitest",
     "lint": "eslint src/**/*.js",

@@ -3,8 +3,10 @@ import logger from '../config/logger.js';
 import { buildDeliveryUrl, validateImageIds, deleteImages } from '../services/cloudflareImages.js';
 
 const MAX_IMAGES_PER_AD = 5;
+const MAX_ADS_PER_USER = 3;
 
 export const INVALID_IMAGE_IDS = 'INVALID_IMAGE_IDS';
+export const AD_LIMIT_REACHED = 'AD_LIMIT_REACHED';
 
 const assertValidImageIds = async (imageIds) => {
   if (!imageIds || imageIds.length === 0) {
@@ -165,6 +167,16 @@ const createInstrumentAds = async (adData) => {
     await assertValidImageIds(imageIds);
 
     await client.query('BEGIN');
+
+    const countResult = await client.query(
+      'SELECT COUNT(*)::int AS count FROM used_instrument_ads WHERE user_id = $1',
+      [userId],
+    );
+    if (countResult.rows[0].count >= MAX_ADS_PER_USER) {
+      const error = new Error(`Maximum ${MAX_ADS_PER_USER} ads allowed per user`);
+      error.code = AD_LIMIT_REACHED;
+      throw error;
+    }
 
     const result = await client.query(
       `INSERT INTO used_instrument_ads (user_id, make_id, name, description, price, condition, instrument_type)
@@ -494,6 +506,7 @@ const getAdOwner = async (adId) => {
 
 export {
   MAX_IMAGES_PER_AD,
+  MAX_ADS_PER_USER,
   VALID_INSTRUMENT_TYPES,
   getInstrumentMakes,
   createInstrumentAds,

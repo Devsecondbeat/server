@@ -1,6 +1,10 @@
 import pkg from 'pg';
-import fs from 'fs';
 import logger from './logger.js';
+import {
+  buildDatabaseSsl,
+  getDefaultSupabaseDbPort,
+  resolveSupabaseDbUser,
+} from './dbEnv.js';
 
 const { Pool } = pkg;
 
@@ -17,39 +21,34 @@ const connectionState = {
  * Build Supabase connection configuration
  * @returns {Object} Connection configuration object for pg Pool
  */
-const buildSupabaseConfig = () => {
-  const config = {
-    host: process.env.SUPABASE_DB_HOST,
-    port: parseInt(process.env.SUPABASE_DB_PORT || '5432', 10),
-    database: process.env.SUPABASE_DB_NAME || 'postgres',
-    user: process.env.SUPABASE_DB_USER || 'postgres',
-    password: process.env.SUPABASE_DB_PASSWORD,
-  };
-
-  // Handle SSL mode
-  const sslMode = process.env.SUPABASE_DB_SSL_MODE || 'require';
-  if (sslMode === 'disable') {
-    config.ssl = false;
-  } else if (process.env.CERTPATH) {
-    try {
-      config.ssl = {
-        ca: fs.readFileSync(process.env.CERTPATH).toString(),
-        rejectUnauthorized: true,
-      };
-    } catch (error) {
-      logger.warn('Failed to load SSL certificate, proceeding without SSL', {
-        error: error.message,
-      });
-      config.ssl = false;
-    }
-  } else {
-    // Default SSL for Supabase: accept server certs without CA verification
-    config.ssl = {
-      rejectUnauthorized: false,
-    };
+const resolveSslOption = (sslResult, connectionType) => {
+  if (sslResult?.missingCert) {
+    logger.warn('CERTPATH file not found; continuing without custom CA', {
+      certPath: sslResult.certPath,
+      connectionType,
+    });
+    return connectionType === 'supabase'
+      ? { rejectUnauthorized: false }
+      : false;
   }
 
-  return config;
+  return sslResult?.ssl ?? sslResult;
+};
+
+const buildSupabaseConfig = () => {
+  const sslResult = buildDatabaseSsl({
+    sslMode: process.env.SUPABASE_DB_SSL_MODE || 'require',
+    preferSupabaseDefault: true,
+  });
+
+  return {
+    host: process.env.SUPABASE_DB_HOST,
+    port: getDefaultSupabaseDbPort(),
+    database: process.env.SUPABASE_DB_NAME || 'postgres',
+    user: resolveSupabaseDbUser(),
+    password: process.env.SUPABASE_DB_PASSWORD,
+    ssl: resolveSslOption(sslResult, 'supabase'),
+  };
 };
 
 /**
@@ -57,32 +56,19 @@ const buildSupabaseConfig = () => {
  * @returns {Object} Connection configuration object for pg Pool
  */
 const buildPostgreSQLConfig = () => {
-  const config = {
+  const sslResult = buildDatabaseSsl({
+    sslMode: process.env.DB_SSL_MODE || 'disable',
+    preferSupabaseDefault: false,
+  });
+
+  return {
     host: process.env.DBHOST,
     port: parseInt(process.env.DBPORT || '5432', 10),
     database: process.env.DATABASENAME,
     user: process.env.DBUSERNAME,
     password: process.env.DBPASSWORD,
+    ssl: resolveSslOption(sslResult, 'postgresql'),
   };
-
-  // Handle SSL certificate if provided
-  if (process.env.CERTPATH) {
-    try {
-      config.ssl = {
-        ca: fs.readFileSync(process.env.CERTPATH).toString(),
-        rejectUnauthorized: true,
-      };
-    } catch (error) {
-      logger.warn('Failed to load SSL certificate, proceeding without SSL', {
-        error: error.message,
-      });
-      config.ssl = false;
-    }
-  } else {
-    config.ssl = false;
-  }
-
-  return config;
 };
 
 /**
