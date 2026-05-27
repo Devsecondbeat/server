@@ -1,24 +1,28 @@
 import express from 'express';
-import verifyToken from '../controllers/authController.js';
+import {
+  getCurrentUser,
+  refreshSession,
+  requestPasswordRecovery,
+  resendActivationEmail,
+  signIn,
+  signOut,
+  signUp,
+  verifyToken,
+} from '../controllers/authController.js';
 import { verifySupabaseTokenMiddleware } from '../middleware/authMiddleware.js';
+import { authRateLimiter } from '../middleware/rateLimiter.js';
 
 const authRoutes = express.Router();
 
-/**
- * POST /api/v1/auth/verify
- * Verifies Supabase JWT token sent from frontend
- * Requires: Authorization header with Bearer token
- * Returns: User information if token is valid
- */
-authRoutes.post('/verify', verifySupabaseTokenMiddleware, verifyToken);
+authRoutes.post('/signup', authRateLimiter, signUp);
+authRoutes.post('/activation/resend', authRateLimiter, resendActivationEmail);
+authRoutes.post('/login', authRateLimiter, signIn);
+authRoutes.post('/refresh', refreshSession);
+authRoutes.post('/logout', signOut);
+authRoutes.post('/password/recovery', authRateLimiter, requestPasswordRecovery);
 
-/**
- * GET /api/v1/auth/verify
- * Alternative GET endpoint for token verification
- * Requires: Authorization header with Bearer token
- * Returns: User information if token is valid
- */
+authRoutes.get('/me', verifySupabaseTokenMiddleware, getCurrentUser);
+authRoutes.post('/verify', verifySupabaseTokenMiddleware, verifyToken);
 authRoutes.get('/verify', verifySupabaseTokenMiddleware, verifyToken);
 
 export default authRoutes;
-

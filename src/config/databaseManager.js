@@ -1,15 +1,6 @@
 import pkg from 'pg';
-import fs from 'fs';
-
-// Logger - replace with Winston logger import if available
-// import logger from './logger.js';
-// For now, using console as fallback
-const logger = {
-  info: (...args) => console.log('[DB-MANAGER]', ...args),
-  warn: (...args) => console.warn('[DB-MANAGER]', ...args),
-  error: (...args) => console.error('[DB-MANAGER]', ...args),
-  debug: (...args) => console.debug('[DB-MANAGER]', ...args),
-};
+import logger from './logger.js';
+import { buildDatabaseSsl, buildSupabasePoolConfig } from './dbEnv.js';
 
 const { Pool } = pkg;
 
@@ -26,72 +17,31 @@ const connectionState = {
  * Build Supabase connection configuration
  * @returns {Object} Connection configuration object for pg Pool
  */
-const buildSupabaseConfig = () => {
-  const config = {
-    host: process.env.SUPABASE_DB_HOST,
-    port: parseInt(process.env.SUPABASE_DB_PORT || '5432', 10),
-    database: process.env.SUPABASE_DB_NAME || 'postgres',
-    user: process.env.SUPABASE_DB_USER || 'postgres',
-    password: process.env.SUPABASE_DB_PASSWORD,
-  };
-
-  // Handle SSL mode
-  const sslMode = process.env.SUPABASE_DB_SSL_MODE || 'require';
-  if (sslMode === 'disable') {
-    config.ssl = false;
-  } else if (process.env.CERTPATH) {
-    try {
-      config.ssl = {
-        ca: fs.readFileSync(process.env.CERTPATH).toString(),
-        rejectUnauthorized: true,
-      };
-    } catch (error) {
-      logger.warn('Failed to load SSL certificate, proceeding without SSL', {
-        error: error.message,
-      });
-      config.ssl = false;
-    }
-  } else {
-    // Default SSL for Supabase: accept server certs without CA verification
-    config.ssl = {
-      rejectUnauthorized: false,
-    };
-  }
-
-  return config;
-};
+const buildSupabaseConfig = () => buildSupabasePoolConfig();
 
 /**
  * Build self-hosted PostgreSQL connection configuration
  * @returns {Object} Connection configuration object for pg Pool
  */
 const buildPostgreSQLConfig = () => {
-  const config = {
+  const sslResult = buildDatabaseSsl({
+    sslMode: process.env.DB_SSL_MODE || 'disable',
+    preferSupabaseDefault: false,
+  });
+
+  let ssl = false;
+  if (!sslResult?.missingCert) {
+    ssl = sslResult?.ssl ?? sslResult;
+  }
+
+  return {
     host: process.env.DBHOST,
     port: parseInt(process.env.DBPORT || '5432', 10),
     database: process.env.DATABASENAME,
     user: process.env.DBUSERNAME,
     password: process.env.DBPASSWORD,
+    ssl,
   };
-
-  // Handle SSL certificate if provided
-  if (process.env.CERTPATH) {
-    try {
-      config.ssl = {
-        ca: fs.readFileSync(process.env.CERTPATH).toString(),
-        rejectUnauthorized: true,
-      };
-    } catch (error) {
-      logger.warn('Failed to load SSL certificate, proceeding without SSL', {
-        error: error.message,
-      });
-      config.ssl = false;
-    }
-  } else {
-    config.ssl = false;
-  }
-
-  return config;
 };
 
 /**
@@ -141,22 +91,27 @@ const initializeConnection = async (type, maxRetries = null) => {
 
   // Validate required configuration
   const missingFields = [];
-  if (!config.host) {
-    missingFields.push(type === 'supabase' ? 'SUPABASE_DB_HOST' : 'DBHOST');
-  }
-  if (!config.database) {
-    missingFields.push(type === 'supabase' ? 'SUPABASE_DB_NAME' : 'DATABASENAME');
-  }
-  if (!config.user) {
-    missingFields.push(type === 'supabase' ? 'SUPABASE_DB_USER' : 'DBUSERNAME');
-  }
-  if (!config.password) {
-    missingFields.push(type === 'supabase' ? 'SUPABASE_DB_PASSWORD' : 'DBPASSWORD');
+  if (!config.connectionString) {
+    if (!config.host) {
+      missingFields.push(type === 'supabase' ? 'SUPABASE_DB_HOST' : 'DBHOST');
+    }
+    if (!config.database) {
+      missingFields.push(type === 'supabase' ? 'SUPABASE_DB_NAME' : 'DATABASENAME');
+    }
+    if (!config.user) {
+      missingFields.push(type === 'supabase' ? 'SUPABASE_DB_USER' : 'DBUSERNAME');
+    }
+    if (!config.password) {
+      missingFields.push(type === 'supabase' ? 'SUPABASE_DB_PASSWORD' : 'DBPASSWORD');
+    }
+  } else if (type !== 'supabase') {
+    missingFields.push('DATABASE_URL is only supported for Supabase connections');
   }
 
   if (missingFields.length > 0) {
     logger.warn(
-      `Missing required configuration for ${type} connection. Missing environment variables: ${missingFields.join(', ')}`,
+      `Missing required configuration for ${type} connection. `
+      + `Missing environment variables: ${missingFields.join(', ')}`,
     );
     return null;
   }
@@ -169,13 +124,18 @@ const initializeConnection = async (type, maxRetries = null) => {
     connectionTimeoutMillis: parseInt(process.env.DB_CONNECTION_TIMEOUT || '5000', 10),
   };
 
+  /* eslint-disable no-await-in-loop -- connection retries require sequential attempts */
   for (let attempt = 1; attempt <= retries; attempt += 1) {
     let pool = null;
     try {
       logger.info(`Attempting ${type} connection (attempt ${attempt}/${retries})`);
-      logger.debug(
-        `Connecting to: ${config.host}:${config.port}/${config.database} as ${config.user}`,
-      );
+      if (config.connectionString) {
+        logger.debug('Connecting via DATABASE_URL (Supabase pooler)');
+      } else {
+        logger.debug(
+          `Connecting to: ${config.host}:${config.port}/${config.database} as ${config.user}`,
+        );
+      }
 
       pool = new Pool(poolConfig);
       const isHealthy = await testConnectionHealth(
@@ -230,9 +190,12 @@ const initializeConnection = async (type, maxRetries = null) => {
     // Exponential backoff: 1s, 2s, 4s
     if (attempt < retries) {
       const delay = 2 ** (attempt - 1) * 1000;
-      await new Promise((resolve) => setTimeout(resolve, delay));
+      await new Promise((resolve) => {
+        setTimeout(resolve, delay);
+      });
     }
   }
+  /* eslint-enable no-await-in-loop */
 
   logger.error(`Failed to connect to ${type} after ${retries} attempts`);
   return null;
@@ -337,7 +300,8 @@ const startHealthChecks = () => {
 const getPool = () => {
   if (!connectionState.currentPool) {
     throw new Error(
-      'No database connection available. Please check your database configuration and ensure connection manager initialized successfully.',
+      'No database connection available. Please check your database configuration '
+      + 'and ensure connection manager initialized successfully.',
     );
   }
   return connectionState.currentPool;

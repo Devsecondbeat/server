@@ -1,199 +1,25 @@
-# Design Document (Onion-Layer) — SecondBeat Server (Used Instruments)
+# server
 
-## 1) The Core (Business Logic & Purpose)
+Server API for Second Beat — used-instruments marketplace (buy/sell). Tutor module is post-MVP.
 
-### Primary problem solved
-This codebase provides a **backend API for SecondBeat’s used-instruments marketplace**, enabling authenticated users to:
+## Database (required before marketplace routes)
 
-- Browse instrument makes and ads
-- Create/update/delete their own ads
-- Attach and manage ad images via Cloudflare Images
-- Operate against **Supabase Postgres with automatic failover** to a self-hosted Postgres instance
+1. Copy `.env.example` to `.env`. Set `DATABASE_URL` from Supabase **Connect** (transaction pooler URI) plus auth keys.
+2. Run migrations: `npm run db:migrate`
+3. Confirm `GET /health/database` returns healthy.
 
-### Domain entities (key data objects)
-- **User**: Identified by `req.user.sub` (Supabase JWT subject / user UUID).
-- **InstrumentMake**: Records from `instrument_makes`.
-- **UsedInstrumentAd**: Records in `used_instrument_ads` with fields such as `user_id`, `make_id`, `name`, `description`, `price`, `condition`, timestamps.
-- **AdImage**: Records in `ad_images` linked to an ad via `ad_id`, storing `cloudflare_image_id` and `display_order`.
-- **DatabaseConnectionState**: In-memory state tracking active pool, active type (`supabase` / `postgresql`), and health.
+Details: [`docs/migrations/README.md`](./docs/migrations/README.md).
 
-### Core business rules (as implemented)
-- **Authentication required**: All `/api/v1/instruments/*` routes require a valid Supabase JWT (JWKS-verified ES256).
-- **Ad ownership enforcement**:
-  - **Update ad** and **delete ad** require the authenticated user to match the ad’s `user_id`.
-- **Image constraints**:
-  - **Max 5 images per ad** (`MAX_IMAGES_PER_AD = 5`), validated during ad create/update and upload-URL generation.
-  - Image delivery URLs are derived as `https://imagedelivery.net/<imagesHash>/<imageId>/<variant>`.
-- **DB availability**:
-  - On startup, the service attempts the preferred DB (`DB_PREFERRED_SOURCE`), with optional fallback (`DB_FALLBACK_ENABLED`), and background health checks.
+## Scripts
 
-### Assumptions
-- The “Tutor module” mentioned in `README.md` is either not implemented here or lives outside the current repository snapshot (no tutor routes/controllers/models observed).
-- Database schema is Postgres and includes tables: `instrument_makes`, `used_instrument_ads`, `ad_images` (inferred from queries).
+- `npm start` — development (nodemon)
+- `npm run start:prod` — production
+- `npm test` — Vitest
+- `npm run lint` — ESLint
+- `npm run db:migrate` — apply SQL migrations
 
----
+## API
 
-## 2) The Functional Layer (The “How it Works” for Users)
-
-### Primary entry points (HTTP APIs)
-
-#### Root
-- `GET /` — basic API liveness response
-
-#### Database health
-- `GET /health/database` — returns `{status, database, timestamp, ...}`
-
-#### Marketplace APIs (authenticated; mounted under `/api/v1`)
-All `/api/v1/instruments/*` endpoints require:
-
-```
-Authorization: Bearer <JWT>
-```
-
-Endpoints:
-- `GET /api/v1/instruments/getinstrumentMakes`
-- `GET /api/v1/instruments/getinstrumentAds`
-- `GET /api/v1/instruments/getinstrumentAdsbyUser/:id` (UUID validated)
-- `POST /api/v1/instruments/createinstrumentAds` (creates an ad; forces `user_id` from token)
-- `PUT /api/v1/instruments/updateinstrumentAds/:id` (ownership enforced)
-- `DELETE /api/v1/instruments/deleteinstrumentAds/:id` (ownership enforced)
-
-Images (Cloudflare):
-- `POST /api/v1/instruments/images/upload-urls` `{ count: 1..5 }`
-- `GET /api/v1/instruments/ads/:adId/images`
-- `GET /api/v1/instruments/ads/:adId/images/can-add?count=N`
-- `DELETE /api/v1/instruments/ads/:adId/images/:imageId`
-
-### Happy path (standard request lifecycle)
-Example: **Create an ad with images**
-
-1. **Client authenticates with Supabase** and obtains a JWT access token (managed externally; this server only verifies it).
-2. **Client requests Cloudflare direct upload URLs**
-   - `POST /api/v1/instruments/images/upload-urls` → returns `{ uploadUrls: [{ uploadURL, id }, ...] }`
-3. **Client uploads images directly to Cloudflare** using `uploadURL`, receiving image IDs (the returned `id` values).
-4. **Client creates the ad**
-   - `POST /api/v1/instruments/createinstrumentAds` with ad fields + `imageIds`
-   - Controller injects `user_id = req.user.sub`
-   - Model writes to `used_instrument_ads` and (optionally) bulk-inserts `ad_images` in a DB transaction
-   - Response includes the created ad plus image delivery URLs
-
-### Key features currently implemented
-- **JWT authentication** via Supabase JWKS (ES256)
-- **Used-instrument ads CRUD** with ownership enforcement for update/delete
-- **Image upload integration** (Cloudflare direct upload URLs, delivery URLs, delete best-effort)
-- **DB connection manager** with:
-  - Supabase primary + Postgres fallback
-  - Health checks + reconnect/switch logic
-  - Operational health endpoint
-- **Centralized logging** via Winston (console + rotating files)
-
-### Assumptions
-- There is no frontend/UI in this repository; “users” refers to API consumers (mobile/web app or API tooling such as Bruno).
-
----
-
-## 3) The Infrastructure Layer (Technical Architecture)
-
-### Tech stack
-- **Runtime**: Node.js (ES Modules, `"type": "module"`)
-- **Web framework**: Express 4
-- **Security middleware**: Helmet, CORS
-- **Database**: PostgreSQL via `pg`
-  - **Primary option**: Supabase-hosted Postgres
-  - **Fallback option**: self-hosted Postgres
-- **Auth**: Supabase JWT verification using `jsonwebtoken` + `jwks-rsa`
-- **Images**: Cloudflare Images API (direct upload, delete, delivery URLs)
-- **Email (utility)**: SendGrid (`@sendgrid/mail`) activation/reset templates (not currently wired into routes)
-- **Logging**: Winston
-- **Dev tooling**: ESLint (Airbnb base), Prettier, Husky + lint-staged, Nodemon
-
-### Directory structure and rationale
-- `src/server.js`: Express app composition, global middleware, health endpoints, route mounting.
-- `src/routes/`: Route wiring and middleware composition.
-  - `apiroutes.js`: API version router (`/api/v1`), applies auth middleware.
-  - `usedinstruments.js`: Feature routes for makes, ads, and images.
-- `src/controllers/`: HTTP-level validation and response mapping (controllers call models/services).
-- `src/models/`: Database access layer (SQL queries, transactions, data shaping).
-- `src/services/`: External API clients/wrappers (Cloudflare Images).
-- `src/config/`: Cross-cutting concerns (logger, database connection management).
-- `src/middleware/`: Auth middleware (Supabase JWT verification).
-- `bruno-collection/`: API collection for manual testing and environment management.
-
-
-### Mermaid.js sequence diagram (main interaction)
-```mermaid
-sequenceDiagram
-  autonumber
-  actor Client
-  participant API as Express API (/api/v1)
-  participant Auth as Auth Middleware (Supabase JWKS)
-  participant Ctrl as Controllers
-  participant DB as Postgres (via getPool)
-  participant CF as Cloudflare Images
-
-  Client->>API: POST /instruments/images/upload-urls {count}
-  API->>Auth: Verify JWT (Authorization header)
-  Auth-->>API: req.user.sub set
-  API->>Ctrl: getUploadUrls
-  Ctrl->>CF: POST direct_upload (xN)
-  CF-->>Ctrl: [{uploadURL,id}...]
-  Ctrl-->>Client: 200 uploadUrls
-
-  Client->>CF: Upload bytes to uploadURL(s)
-  CF-->>Client: Upload success (image stored)
-
-  Client->>API: POST /instruments/createinstrumentAds {ad fields, imageIds}
-  API->>Auth: Verify JWT
-  Auth-->>API: req.user.sub set
-  API->>Ctrl: createinstrumentAds
-  Ctrl->>DB: BEGIN transaction
-  Ctrl->>DB: INSERT used_instrument_ads
-  Ctrl->>DB: INSERT ad_images (optional)
-  Ctrl->>DB: COMMIT transaction
-  DB-->>Ctrl: created ad + images
-  Ctrl-->>Client: 201 {message, data (with delivery URLs)}
-```
-
----
-
-## 4) The Outer Shell (Operational & Future State)
-
-### Testing and deployment
-- **Local run**: `npm run start` (Nodemon) starts `src/server.js`.
-- **API testing**: Bruno collection under `bruno-collection/` supports local/production environments and JWT injection.
-- **Automated tests**: No test runner configured (`npm test` exits with “no test specified”).
-- **CI/CD**: Not present in repo artifacts reviewed.
-- **Operational health**: `GET /health/database` exposes DB connectivity/active source.
-
-### Assumptions
-- Deployment target (Docker, serverless, VM, PaaS) is not defined in this repository snapshot.
-
-### Technical debt / scaling opportunities
-- **Security / logging**:
-  - A legacy route logs `req.headers` (`/uploadImages`), which risks leaking secrets (e.g., `Authorization`).
-- **Authorization gap**:
-  - `removeAdImage` includes a TODO for auth/ownership checks; the route is authenticated, but **ownership is not enforced** for image deletion.
-- **Error handling consistency**:
-  - No centralized Express error handler is shown; controllers sometimes log and `next(error)` without a guaranteed consistent JSON error response format.
-- **API naming consistency**:
-  - Endpoints and handlers use inconsistent casing (`getinstrumentMakes`, `createinstrumentAds`, etc.), which complicates long-term API evolution/versioning.
-- **Dead/unsafe utility**:
-  - `src/testConnection.js` contains hardcoded credentials placeholders and creates its own pool; it is not aligned with the connection manager and is risky if ever populated.
-- **Cloudflare service assumptions**:
-  - Uses `fetch`/`FormData` globally; compatibility depends on Node runtime version/config.
-- **Domain growth**:
-  - “Tutor module” appears in README but is not represented in the API surface—either missing or split across repos; future scope should be clarified.
-
-### Glossary of terms (project-specific)
-- **SecondBeat**: Product/platform name for the marketplace experience.
-- **Used Instrument Ad / Ad**: A listing in `used_instrument_ads`.
-- **Instrument Make**: Manufacturer/brand reference data in `instrument_makes`.
-- **Ad Images**: Image records in `ad_images` associated to an ad.
-- **Cloudflare Image ID**: Identifier returned by Cloudflare Images direct upload API (`id`), stored in DB as `cloudflare_image_id`.
-- **Delivery URL / Variant**: Cloudflare Images CDN URL with variant presets (`thumbnail`, `card`, `full`, `public`).
-- **Supabase JWT**: Access token issued by Supabase Auth; verified via JWKS and used to derive `req.user.sub`.
-- **JWKS**: JSON Web Key Set endpoint used to fetch Supabase public keys for token verification.
-- **DB Preferred Source**: `DB_PREFERRED_SOURCE` env var selecting primary DB (`supabase` or `postgresql`).
-- **DB Fallback**: Automatic switch to the secondary DB when the preferred source is unhealthy.
-- **Health Check Interval**: `DB_HEALTH_CHECK_INTERVAL` controlling periodic DB liveness probes.
-
+- `GET /health/database` — database health
+- `/api/v1/auth/*` — Supabase auth (signup, login, refresh, emails)
+- `/api/v1/instruments/*` — marketplace (Bearer JWT required)

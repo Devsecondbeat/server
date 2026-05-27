@@ -1,4 +1,5 @@
 import fs from 'fs';
+import logger from './logger.js';
 import {
   getPool,
   getConnectionType,
@@ -22,16 +23,15 @@ const dbConfig = {
     try {
       const certPath = process.env.CERTPATH;
       if (!fs.existsSync(certPath)) {
-        console.error(`[Database Config] SSL certificate file not found at path: ${certPath}`);
+        logger.error(`SSL certificate file not found at path: ${certPath}`);
         return false;
       }
       const certContent = fs.readFileSync(certPath).toString();
       return { ca: certContent };
     } catch (error) {
-      console.error(
-        `[Database Config] Failed to read SSL certificate from path: ${process.env.CERTPATH}`,
-      );
-      console.error(`[Database Config] Error: ${error.message}`);
+      logger.error(`Failed to read SSL certificate from path: ${process.env.CERTPATH}`, {
+        error: error.message,
+      });
       return false;
     }
   })(),

@@ -6,9 +6,6 @@ node_modules/
 .env.development
 .env.prod
 
-#package lock file
-package-lock.json
-
 # Logs
 logs
 
@@ -23,4 +20,5 @@ uploads/
 *.md
 !README.md
 !CONTRIBUTING.md
+!docs/migrations/README.md
 .husky/
