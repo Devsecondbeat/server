@@ -15,12 +15,10 @@ export const verifyToken = (req, res, next) => {
   }
 };
 
-/**
- * Middleware to verify Supabase JWT tokens
- * Extracts token from Authorization header (Bearer <token>)
- * Verifies token with Supabase and attaches user to req.user
- */
-export const verifySupabaseTokenMiddleware = async (req, res, next) => {
+export const createVerifySupabaseTokenMiddleware = ({
+  verifySupabaseTokenFn = verifySupabaseToken,
+  loggerInstance = logger,
+} = {}) => async (req, res, next) => {
   try {
     // Extract token from Authorization header
     const authHeader = req.header('Authorization');
@@ -51,7 +49,7 @@ export const verifySupabaseTokenMiddleware = async (req, res, next) => {
     }
 
     // Verify token with Supabase
-    const user = await verifySupabaseToken(token);
+    const user = await verifySupabaseTokenFn(token);
 
     if (!user) {
       return res.status(401).json({
@@ -64,13 +62,20 @@ export const verifySupabaseTokenMiddleware = async (req, res, next) => {
     req.user = user;
     req.supabaseToken = token;
 
-    logger.debug('Supabase token verified for user:', user.id);
+    loggerInstance.debug('Supabase token verified for user:', user.id);
     next();
   } catch (error) {
-    logger.error('Error in Supabase token verification middleware:', error);
+    loggerInstance.error('Error in Supabase token verification middleware:', error);
     return res.status(500).json({
       success: false,
       error: 'Internal server error during token verification',
     });
   }
 };
+
+/**
+ * Middleware to verify Supabase JWT tokens.
+ * Extracts token from Authorization header (Bearer <token>), verifies it with
+ * Supabase, and attaches user details to req.user.
+ */
+export const verifySupabaseTokenMiddleware = createVerifySupabaseTokenMiddleware();
