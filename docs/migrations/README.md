@@ -15,7 +15,13 @@ SQL migrations for the used-instruments marketplace. Apply in numeric order agai
 | `001-add-instrument-type.sql` | `instrument_type` column + CHECK constraint |
 | `002-seed-instrument-makes.sql` | Reference brands for create-ad |
 
-**Quick apply:** `npm run db:migrate` (requires `DATABASE_URL` or `SUPABASE_DB_*` in `.env`).
+**Quick apply:** `npm run db:migrate` (set `DATABASE_URL` from Supabase Dashboard → **Connect** → Transaction pooler).
+
+Example (replace password):
+
+```env
+DATABASE_URL=postgresql://postgres.<project-ref>:[PASSWORD]@aws-1-ap-south-1.pooler.supabase.com:6543/postgres
+```
 
 ## How to run (manual)
 

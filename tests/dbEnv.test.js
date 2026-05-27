@@ -1,5 +1,6 @@
 import { describe, it, expect, beforeEach, afterEach } from 'vitest';
 import {
+  buildSupabasePoolConfig,
   getSupabaseProjectRef,
   resolveSupabaseDbUser,
 } from '../src/config/dbEnv.js';
@@ -41,5 +42,14 @@ describe('dbEnv', () => {
     process.env.SUPABASE_DB_USE_POOLER = 'false';
 
     expect(resolveSupabaseDbUser()).toBe('postgres');
+  });
+
+  it('prefers DATABASE_URL for pool config', () => {
+    process.env.DATABASE_URL = 'postgresql://postgres.myproject:secret@pooler.example.com:6543/postgres';
+    delete process.env.SUPABASE_DB_HOST;
+
+    const config = buildSupabasePoolConfig();
+    expect(config.connectionString).toBe(process.env.DATABASE_URL);
+    expect(config.ssl).toEqual({ rejectUnauthorized: false });
   });
 });

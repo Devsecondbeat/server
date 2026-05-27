@@ -1,6 +1,6 @@
 import logger from '../config/logger.js';
 import AppError from '../Utils/AppError.js';
-import { INVALID_IMAGE_IDS } from '../models/marketplace_model.js';
+import { INVALID_IMAGE_IDS, AD_LIMIT_REACHED } from '../models/marketplace_model.js';
 
 export const notFoundHandler = (_req, res) => {
   res.status(404).json({ success: false, error: 'Route not found' });
@@ -22,6 +22,14 @@ export const errorHandler = (err, req, res, _next) => {
       error: err.message,
       code: INVALID_IMAGE_IDS,
       invalidIds: err.invalidIds,
+    });
+  }
+
+  if (err.code === AD_LIMIT_REACHED) {
+    return res.status(409).json({
+      success: false,
+      error: err.message,
+      code: AD_LIMIT_REACHED,
     });
   }
 

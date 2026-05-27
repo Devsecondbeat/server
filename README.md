@@ -4,7 +4,7 @@ Server API for Second Beat — used-instruments marketplace (buy/sell). Tutor mo
 
 ## Database (required before marketplace routes)
 
-1. Copy `.env.example` to `.env` and set Supabase DB + auth vars (see pooler/SSL notes in migrations README).
+1. Copy `.env.example` to `.env`. Set `DATABASE_URL` from Supabase **Connect** (transaction pooler URI) plus auth keys.
 2. Run migrations: `npm run db:migrate`
 3. Confirm `GET /health/database` returns healthy.
 

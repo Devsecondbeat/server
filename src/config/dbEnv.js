@@ -71,3 +71,54 @@ export const getDefaultSupabaseDbPort = () => (
     ? parseInt(process.env.SUPABASE_DB_PORT || '6543', 10)
     : parseInt(process.env.SUPABASE_DB_PORT || '5432', 10)
 );
+
+/**
+ * Build pg Pool config for Supabase. Prefers DATABASE_URL (Supabase dashboard format).
+ */
+export const buildSupabasePoolConfig = () => {
+  if (process.env.DATABASE_URL) {
+    return {
+      connectionString: process.env.DATABASE_URL,
+      ssl: { rejectUnauthorized: false },
+    };
+  }
+
+  const sslResult = buildDatabaseSsl({
+    sslMode: process.env.SUPABASE_DB_SSL_MODE || 'require',
+    preferSupabaseDefault: true,
+  });
+
+  let ssl = false;
+  if (sslResult?.missingCert) {
+    ssl = { rejectUnauthorized: false };
+  } else if (sslResult?.ssl) {
+    ssl = sslResult.ssl;
+  } else if (sslResult && sslResult !== false) {
+    ssl = sslResult;
+  } else if (process.env.SUPABASE_DB_SSL_MODE !== 'disable') {
+    ssl = { rejectUnauthorized: false };
+  }
+
+  return {
+    host: process.env.SUPABASE_DB_HOST,
+    port: getDefaultSupabaseDbPort(),
+    database: process.env.SUPABASE_DB_NAME || 'postgres',
+    user: resolveSupabaseDbUser(),
+    password: process.env.SUPABASE_DB_PASSWORD,
+    ssl,
+  };
+};
+
+export const formatSupabaseDatabaseUrl = ({
+  user = resolveSupabaseDbUser(),
+  password = process.env.SUPABASE_DB_PASSWORD,
+  host = process.env.SUPABASE_DB_HOST,
+  port = getDefaultSupabaseDbPort(),
+  database = process.env.SUPABASE_DB_NAME || 'postgres',
+} = {}) => {
+  if (!user || !password || !host) {
+    return null;
+  }
+
+  return `postgresql://${user}:${encodeURIComponent(password)}@${host}:${port}/${database}`;
+};

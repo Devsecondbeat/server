@@ -1,10 +1,6 @@
 import pkg from 'pg';
 import logger from './logger.js';
-import {
-  buildDatabaseSsl,
-  getDefaultSupabaseDbPort,
-  resolveSupabaseDbUser,
-} from './dbEnv.js';
+import { buildDatabaseSsl, buildSupabasePoolConfig } from './dbEnv.js';
 
 const { Pool } = pkg;
 
@@ -21,35 +17,7 @@ const connectionState = {
  * Build Supabase connection configuration
  * @returns {Object} Connection configuration object for pg Pool
  */
-const resolveSslOption = (sslResult, connectionType) => {
-  if (sslResult?.missingCert) {
-    logger.warn('CERTPATH file not found; continuing without custom CA', {
-      certPath: sslResult.certPath,
-      connectionType,
-    });
-    return connectionType === 'supabase'
-      ? { rejectUnauthorized: false }
-      : false;
-  }
-
-  return sslResult?.ssl ?? sslResult;
-};
-
-const buildSupabaseConfig = () => {
-  const sslResult = buildDatabaseSsl({
-    sslMode: process.env.SUPABASE_DB_SSL_MODE || 'require',
-    preferSupabaseDefault: true,
-  });
-
-  return {
-    host: process.env.SUPABASE_DB_HOST,
-    port: getDefaultSupabaseDbPort(),
-    database: process.env.SUPABASE_DB_NAME || 'postgres',
-    user: resolveSupabaseDbUser(),
-    password: process.env.SUPABASE_DB_PASSWORD,
-    ssl: resolveSslOption(sslResult, 'supabase'),
-  };
-};
+const buildSupabaseConfig = () => buildSupabasePoolConfig();
 
 /**
  * Build self-hosted PostgreSQL connection configuration
@@ -61,13 +29,18 @@ const buildPostgreSQLConfig = () => {
     preferSupabaseDefault: false,
   });
 
+  let ssl = false;
+  if (!sslResult?.missingCert) {
+    ssl = sslResult?.ssl ?? sslResult;
+  }
+
   return {
     host: process.env.DBHOST,
     port: parseInt(process.env.DBPORT || '5432', 10),
     database: process.env.DATABASENAME,
     user: process.env.DBUSERNAME,
     password: process.env.DBPASSWORD,
-    ssl: resolveSslOption(sslResult, 'postgresql'),
+    ssl,
   };
 };
 
@@ -118,17 +91,21 @@ const initializeConnection = async (type, maxRetries = null) => {
 
   // Validate required configuration
   const missingFields = [];
-  if (!config.host) {
-    missingFields.push(type === 'supabase' ? 'SUPABASE_DB_HOST' : 'DBHOST');
-  }
-  if (!config.database) {
-    missingFields.push(type === 'supabase' ? 'SUPABASE_DB_NAME' : 'DATABASENAME');
-  }
-  if (!config.user) {
-    missingFields.push(type === 'supabase' ? 'SUPABASE_DB_USER' : 'DBUSERNAME');
-  }
-  if (!config.password) {
-    missingFields.push(type === 'supabase' ? 'SUPABASE_DB_PASSWORD' : 'DBPASSWORD');
+  if (!config.connectionString) {
+    if (!config.host) {
+      missingFields.push(type === 'supabase' ? 'SUPABASE_DB_HOST' : 'DBHOST');
+    }
+    if (!config.database) {
+      missingFields.push(type === 'supabase' ? 'SUPABASE_DB_NAME' : 'DATABASENAME');
+    }
+    if (!config.user) {
+      missingFields.push(type === 'supabase' ? 'SUPABASE_DB_USER' : 'DBUSERNAME');
+    }
+    if (!config.password) {
+      missingFields.push(type === 'supabase' ? 'SUPABASE_DB_PASSWORD' : 'DBPASSWORD');
+    }
+  } else if (type !== 'supabase') {
+    missingFields.push('DATABASE_URL is only supported for Supabase connections');
   }
 
   if (missingFields.length > 0) {
@@ -152,9 +129,13 @@ const initializeConnection = async (type, maxRetries = null) => {
     let pool = null;
     try {
       logger.info(`Attempting ${type} connection (attempt ${attempt}/${retries})`);
-      logger.debug(
-        `Connecting to: ${config.host}:${config.port}/${config.database} as ${config.user}`,
-      );
+      if (config.connectionString) {
+        logger.debug('Connecting via DATABASE_URL (Supabase pooler)');
+      } else {
+        logger.debug(
+          `Connecting to: ${config.host}:${config.port}/${config.database} as ${config.user}`,
+        );
+      }
 
       pool = new Pool(poolConfig);
       const isHealthy = await testConnectionHealth(
