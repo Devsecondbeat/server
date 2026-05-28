@@ -6,7 +6,7 @@ Server API for Second Beat — used-instruments marketplace (buy/sell). Tutor mo
 
 1. Copy `.env.example` to `.env`. Set `DATABASE_URL` from Supabase **Connect** (transaction pooler URI) plus auth keys.
 2. Run migrations: `npm run db:migrate`
-3. Start dev server: `npm start`
+3. Start dev server: `npm run dev`
 4. Confirm health:
    - `GET /health` — liveness (no DB)
    - `GET /health/database` — database connectivity
@@ -17,15 +17,15 @@ Details: [`docs/migrations/README.md`](./docs/migrations/README.md).
 
 | Command | Purpose |
 |---------|---------|
-| `npm start` | Development (nodemon) |
-| `npm run start:prod` | Production (`node src/server.js`) — used on DigitalOcean |
+| `npm start` | Production (`node src/server.js`) — default on DigitalOcean |
+| `npm run dev` | Local development (nodemon) |
 | `npm test` | Vitest |
 | `npm run db:migrate` | Apply SQL migrations |
 
 ## Deployment (DigitalOcean App Platform)
 
 **Platform:** DigitalOcean App Platform, region **Bangalore (`blr`)**.  
-**Run command:** `npm run start:prod`  
+**Run command:** `npm start` (or `npm run start:prod`)  
 **Health check:** `GET /health` (not `/health/database`)
 
 Full guide: [`docs/deployment/digitalocean.md`](./docs/deployment/digitalocean.md)

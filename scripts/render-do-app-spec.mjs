@@ -112,7 +112,7 @@ services:
     environment_slug: node-js
     instance_count: 1
     instance_size_slug: basic-xxs
-    run_command: npm run start:prod
+    run_command: npm start
     http_port: 3000
     health_check:
       http_path: /health

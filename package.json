@@ -4,7 +4,8 @@
   "description": "server setup and API code to support secondbeat",
   "main": "server.js",
   "scripts": {
-    "start": "nodemon src/server.js",
+    "start": "node src/server.js",
+    "dev": "nodemon src/server.js",
     "start:prod": "node src/server.js",
     "db:migrate": "node scripts/apply-migrations.js",
     "deploy:staging": "bash scripts/deploy-do-staging.sh",
