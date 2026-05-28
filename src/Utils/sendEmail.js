@@ -23,12 +23,19 @@ const ensureSendGridConfigured = () => {
 const sendEmail = async ({ to, subject, html }) => {
   ensureSendGridConfigured();
 
-  await sgMail.send({
-    to,
-    from: fromEmail,
-    subject,
-    html,
-  });
+  try {
+    await sgMail.send({
+      to,
+      from: fromEmail,
+      subject,
+      html,
+    });
+  } catch (error) {
+    const sendGridMessage = error.response?.body?.errors?.[0]?.message;
+    const wrapped = new Error(sendGridMessage || error.message || 'Failed to send email');
+    wrapped.code = error.code === 401 ? 'SENDGRID_UNAUTHORIZED' : 'SENDGRID_SEND_FAILED';
+    throw wrapped;
+  }
 
   logger.info('Email sent successfully', { to, subject });
 };

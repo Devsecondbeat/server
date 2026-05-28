@@ -7,6 +7,7 @@ import routes from './routes/apiroutes.js';
 import { getConnectionType, isConnectionHealthy } from './config/database.js';
 import logger from './config/logger.js';
 import { errorHandler, notFoundHandler } from './middleware/errorHandler.js';
+import { requestLogMiddleware } from './middleware/requestLog.js';
 
 const app = express();
 const { PORT } = process.env;
@@ -30,6 +31,7 @@ app.use(
 
 app.use(express.json({ limit: process.env.JSON_BODY_LIMIT || '100kb' }));
 app.use(express.urlencoded({ extended: true, limit: process.env.JSON_BODY_LIMIT || '100kb' }));
+app.use(requestLogMiddleware);
 
 app.get('/', (req, res) => {
   res.json({ message: 'Hello, this is the root API endpoint!' });

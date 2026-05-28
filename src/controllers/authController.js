@@ -1,4 +1,7 @@
 import logger from '../config/logger.js';
+import { getActivationRedirectUrl, getPasswordResetRedirectUrl } from '../config/authRedirects.js';
+import { formatAuthFailure } from '../Utils/authErrorLog.js';
+import { getSupabaseKeyDiagnostics } from '../config/supabaseKeys.js';
 import { sendActivationEmail, sendPasswordResetEmail } from '../Utils/sendEmail.js';
 import {
   formatAuthSession,
@@ -48,8 +51,19 @@ const handleAuthError = (res, error) => {
   if (error.code === 'SUPABASE_NOT_CONFIGURED' || error.code === 'SUPABASE_ADMIN_NOT_CONFIGURED') {
     return res.status(503).json({ success: false, error: error.message });
   }
+  if (error.code === 'AUTH_REDIRECT_NOT_CONFIGURED' || error.code === 'AUTH_REDIRECT_MISMATCH') {
+    return res.status(503).json({ success: false, error: error.message });
+  }
   if (error.code === 'SENDGRID_NOT_CONFIGURED' || error.code === 'SENDGRID_INVALID_KEY') {
     return res.status(503).json({ success: false, error: error.message });
+  }
+  if (error.code === 'SENDGRID_UNAUTHORIZED' || error.code === 'SENDGRID_SEND_FAILED') {
+    return res.status(503).json({
+      success: false,
+      error: error.message.includes('Maximum credits exceeded')
+        ? 'Email service quota exceeded. Account may still be created — contact support or try again later.'
+        : `Email delivery failed: ${error.message}`,
+    });
   }
 
   const mapped = mapSupabaseAuthError(error);
@@ -57,6 +71,8 @@ const handleAuthError = (res, error) => {
 };
 
 export const signUp = async (req, res) => {
+  let step = 'validate_input';
+
   try {
     const {
       email,
@@ -65,6 +81,8 @@ export const signUp = async (req, res) => {
       lastName,
       phoneNumber,
     } = req.body;
+
+    logger.info('Sign up started', { email, step });
 
     const validationError = validateEmailPassword(email, password);
     if (validationError) {
@@ -76,15 +94,21 @@ export const signUp = async (req, res) => {
     if (lastName) metadata.last_name = lastName;
     if (phoneNumber) metadata.phone_number = phoneNumber;
 
-    const redirectTo = process.env.SUPABASE_ACTIVATION_REDIRECT_URL
-      || process.env.CORS_ORIGIN
-      || undefined;
+    const redirectTo = getActivationRedirectUrl();
 
+    step = 'supabase_generate_link';
     const { user, activationLink } = await createSignupWithActivationLink({
       email,
       password,
       metadata,
       redirectTo,
+    });
+
+    step = 'send_activation_email';
+    logger.info('Sign up sending activation email', {
+      email,
+      step,
+      sendgridConfigured: Boolean(process.env.SENDGRID_API_KEY?.startsWith('SG.')),
     });
 
     await sendActivationEmail(
@@ -93,13 +117,23 @@ export const signUp = async (req, res) => {
       buildDisplayName({ firstName, lastName, email }),
     );
 
+    logger.info('Sign up completed', { email, userId: user?.id });
+
     return res.status(201).json({
       success: true,
       message: 'Account created. Check your email to activate your account before signing in.',
       user: formatAuthUser(user),
     });
   } catch (error) {
-    logger.error('Sign up failed', { error: error.message });
+    logger.error('Sign up failed', {
+      step: error.signupStep || step,
+      email: req.body?.email,
+      ...formatAuthFailure(error),
+      keyDiagnostics: step === 'supabase_generate_link' || error.signupStep === 'supabase_generate_link'
+        ? getSupabaseKeyDiagnostics()
+        : undefined,
+      sendgridConfigured: Boolean(process.env.SENDGRID_API_KEY?.startsWith('SG.')),
+    });
     return handleAuthError(res, error);
   }
 };
@@ -112,9 +146,7 @@ export const resendActivationEmail = async (req, res) => {
       return res.status(400).json({ success: false, error: 'A valid email is required' });
     }
 
-    const redirectTo = process.env.SUPABASE_ACTIVATION_REDIRECT_URL
-      || process.env.CORS_ORIGIN
-      || undefined;
+    const redirectTo = getActivationRedirectUrl();
 
     const { user, activationLink } = await createActivationResendLink({ email, redirectTo });
     const displayName = user.user_metadata?.first_name
@@ -187,9 +219,7 @@ export const requestPasswordRecovery = async (req, res) => {
       return res.status(400).json({ success: false, error: 'A valid email is required' });
     }
 
-    const redirectTo = process.env.SUPABASE_PASSWORD_RESET_REDIRECT_URL
-      || process.env.CORS_ORIGIN
-      || undefined;
+    const redirectTo = getPasswordResetRedirectUrl();
 
     try {
       const resetLink = await createPasswordRecoveryLink({ email, redirectTo });

@@ -1,21 +1,28 @@
 import { createClient } from '@supabase/supabase-js';
 import logger from './logger.js';
+import { resolveSupabaseKeys, getSupabaseKeyDiagnostics } from './supabaseKeys.js';
 
 const supabaseUrl = process.env.SUPABASE_URL;
-const supabaseAnonKey = process.env.SUPABASE_ANON_KEY;
-const supabaseServiceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+const { clientKey: supabaseAnonKey, adminKey: supabaseServiceRoleKey } = resolveSupabaseKeys();
 
 if (!supabaseUrl || !supabaseAnonKey) {
   logger.warn(
-    'Supabase URL or Anon Key not configured. Supabase authentication will not work.',
+    'Supabase URL or client key not configured. Set SUPABASE_URL and SUPABASE_PUBLISHABLE_KEY (or SUPABASE_ANON_KEY).',
   );
-  logger.warn('Please set SUPABASE_URL and SUPABASE_ANON_KEY in your .env file');
 }
 
 if (!supabaseServiceRoleKey) {
   logger.warn(
-    'SUPABASE_SERVICE_ROLE_KEY is not configured. Signup activation and password reset emails will not work.',
+    'Supabase secret key not configured. Set SUPABASE_SERVICE_ROLE_KEY (or SUPABASE_SECRET_KEY). Signup activation and password reset will not work.',
   );
+}
+
+const diagnostics = getSupabaseKeyDiagnostics();
+const truncated = diagnostics.clientKey.looksTruncated || diagnostics.adminKey.looksTruncated;
+if (truncated || !supabaseServiceRoleKey) {
+  logger.warn('Supabase key configuration', diagnostics);
+} else {
+  logger.debug('Supabase key configuration', diagnostics);
 }
 
 const createSupabaseClient = (key) => {

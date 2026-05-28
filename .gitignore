@@ -13,8 +13,12 @@ bin/doctl
 .do/app-id.staging
 .do/access_token
 
-# Cursor MCP config may contain API tokens
-.cursor/mcp.json
+# Cursor
+.cursor/
+worktrees/
+
+# Test coverage
+coverage/
 
 # Logs
 logs

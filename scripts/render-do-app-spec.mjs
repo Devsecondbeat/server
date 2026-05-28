@@ -7,6 +7,7 @@ import fs from 'fs';
 import path from 'path';
 import { fileURLToPath } from 'url';
 import dotenv from 'dotenv';
+import { resolveSupabaseKeys } from '../src/config/supabaseKeys.js';
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
 const root = path.join(__dirname, '..');
@@ -40,8 +41,9 @@ const main = () => {
   loadEnv();
 
   const corsOrigin = process.env.CORS_ORIGIN?.replace(/\/$/, '');
-  const anonKey = process.env.SUPABASE_ANON_KEY || process.env.SUPABASE_PUBLISHABLE_KEY;
-  const serviceRoleKey = process.env.SUPABASE_SERVICE_ROLE_KEY;
+  const { clientKey, adminKey } = resolveSupabaseKeys(process.env);
+  const anonKey = clientKey;
+  const serviceRoleKey = adminKey;
   const activationRedirect =
     process.env.SUPABASE_ACTIVATION_REDIRECT_URL || `${corsOrigin}/activate`;
   const passwordResetRedirect =

@@ -1,5 +1,22 @@
 import { supabaseAdminClient, supabaseClient } from '../config/supabase.js';
+import { assertRedirectToHonored } from '../config/authRedirects.js';
+import { getSupabaseKeyDiagnostics } from '../config/supabaseKeys.js';
 import logger from '../config/logger.js';
+import { formatAuthFailure } from '../Utils/authErrorLog.js';
+
+const logSupabaseAuthFailure = (operation, error) => {
+  logger.error(`Supabase auth failed: ${operation}`, {
+    operation,
+    ...formatAuthFailure(error),
+    keyDiagnostics: getSupabaseKeyDiagnostics(),
+  });
+};
+
+const throwWithStep = (error, signupStep) => {
+  const err = error instanceof Error ? error : new Error(String(error));
+  err.signupStep = signupStep;
+  throw err;
+};
 
 const requireClient = () => {
   if (!supabaseClient) {
@@ -52,6 +69,18 @@ export const mapSupabaseAuthError = (error) => {
   if (message.toLowerCase().includes('already registered')) {
     return { status: 409, error: 'An account with this email already exists' };
   }
+  if (message.includes('This endpoint requires a valid Bearer token')) {
+    return {
+      status: 503,
+      error: 'Supabase secret key is missing or invalid. Set SUPABASE_SERVICE_ROLE_KEY (sb_secret_...) on the server.',
+    };
+  }
+  if (message.includes('Invalid API key')) {
+    return {
+      status: 503,
+      error: 'Supabase API key is invalid. Copy the full publishable/secret keys from Supabase Dashboard > Settings > API Keys.',
+    };
+  }
   if (message.includes('Password should be at least')) {
     return { status: 400, error: message };
   }
@@ -67,6 +96,14 @@ export const createSignupWithActivationLink = async ({
   redirectTo,
 }) => {
   const admin = requireAdminClient();
+
+  logger.info('Supabase admin generateLink starting', {
+    operation: 'signup',
+    email,
+    redirectTo: redirectTo || null,
+    keyDiagnostics: getSupabaseKeyDiagnostics(),
+  });
+
   const { data, error } = await admin.auth.admin.generateLink({
     type: 'signup',
     email,
@@ -78,8 +115,18 @@ export const createSignupWithActivationLink = async ({
   });
 
   if (error) {
-    throw error;
+    logSupabaseAuthFailure('signup_generate_link', error);
+    throwWithStep(error, 'supabase_generate_link');
   }
+
+  assertRedirectToHonored(redirectTo, data.properties.action_link);
+
+  logger.info('Supabase admin generateLink succeeded', {
+    operation: 'signup',
+    userId: data.user?.id,
+    email: data.user?.email,
+    redirectTo,
+  });
 
   return {
     user: data.user,
@@ -99,6 +146,8 @@ export const createActivationResendLink = async ({ email, redirectTo }) => {
     throw error;
   }
 
+  assertRedirectToHonored(redirectTo, data.properties.action_link);
+
   return {
     user: data.user,
     activationLink: data.properties.action_link,
@@ -116,6 +165,8 @@ export const createPasswordRecoveryLink = async ({ email, redirectTo }) => {
   if (error) {
     throw error;
   }
+
+  assertRedirectToHonored(redirectTo, data.properties.action_link);
 
   return data.properties.action_link;
 };

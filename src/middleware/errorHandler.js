@@ -41,8 +41,15 @@ export const errorHandler = (err, req, res, _next) => {
     return res.status(400).json({ success: false, error: 'Invalid JSON body' });
   }
 
+  const errorMeta = {
+    requestId: req.requestId,
+    method: req.method,
+    path: req.originalUrl || req.path,
+    ...(err.code ? { code: err.code } : {}),
+  };
+
   if (err.message?.includes('Cloudflare')) {
-    logger.error('Cloudflare service error', { error: err.message, path: req.path });
+    logger.error('Cloudflare service error', { ...errorMeta, error: err.message });
     return res.status(502).json({ success: false, error: 'Image service unavailable' });
   }
 
@@ -54,10 +61,9 @@ export const errorHandler = (err, req, res, _next) => {
   }
 
   logger.error('Unhandled error', {
+    ...errorMeta,
     error: err.message,
     stack: err.stack,
-    path: req.path,
-    method: req.method,
   });
 
   return res.status(500).json({ success: false, error: 'Internal server error' });
