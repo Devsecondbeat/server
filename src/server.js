@@ -35,6 +35,13 @@ app.get('/', (req, res) => {
   res.json({ message: 'Hello, this is the root API endpoint!' });
 });
 
+app.get('/health', (req, res) => {
+  res.status(200).json({
+    status: 'ok',
+    timestamp: new Date().toISOString(),
+  });
+});
+
 app.get('/health/database', (req, res) => {
   try {
     const connectionType = getConnectionType();

@@ -1,0 +1,73 @@
+# DigitalOcean App Platform spec template (staging).
+# Copy to a second app spec for production (branch: main, different name/CORS).
+# Set encrypted secrets in the DO dashboard or via doctl — do not commit real values.
+#
+# Deploy: doctl apps create --spec .do/app.yaml
+# Update: doctl apps update <app-id> --spec .do/app.yaml
+
+name: secondbeat-api-staging
+region: blr
+
+services:
+  - name: api
+    github:
+      repo: Devsecondbeat/server
+      branch: develop
+      deploy_on_push: true
+    environment_slug: node-js
+    instance_count: 1
+    instance_size_slug: basic-xxs
+    run_command: npm run start:prod
+    http_port: 3000
+    health_check:
+      http_path: /health
+      initial_delay_seconds: 30
+      period_seconds: 10
+      timeout_seconds: 5
+      success_threshold: 1
+      failure_threshold: 3
+    envs:
+      - key: NODE_ENV
+        value: production
+      - key: PORT
+        value: "3000"
+      - key: CORS_ORIGIN
+        value: https://REPLACE_STAGING_CLIENT_ORIGIN
+      - key: SUPABASE_URL
+        value: https://REPLACE_PROJECT_REF.supabase.co
+      - key: SUPABASE_ANON_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: REPLACE_ME
+      - key: SUPABASE_SERVICE_ROLE_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: REPLACE_ME
+      - key: DATABASE_URL
+        scope: RUN_TIME
+        type: SECRET
+        value: REPLACE_ME
+      - key: SUPABASE_ACTIVATION_REDIRECT_URL
+        value: https://REPLACE_STAGING_CLIENT_ORIGIN/activate
+      - key: SUPABASE_PASSWORD_RESET_REDIRECT_URL
+        value: https://REPLACE_STAGING_CLIENT_ORIGIN/reset-password
+      - key: SENDGRID_API_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: REPLACE_ME
+      - key: SENDGRID_FROM_EMAIL
+        value: support@secondbeat.in
+      - key: CLOUDFLARE_ACCOUNT_ID
+        value: REPLACE_ME
+      - key: CLOUDFLARE_API_TOKEN
+        scope: RUN_TIME
+        type: SECRET
+        value: REPLACE_ME
+      - key: CLOUDFLARE_IMAGES_HASH
+        value: REPLACE_ME
+      - key: DB_FALLBACK_ENABLED
+        value: "false"
+      - key: DB_PREFERRED_SOURCE
+        value: supabase
+      - key: LOG_LEVEL
+        value: info

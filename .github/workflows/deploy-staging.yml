@@ -1,0 +1,41 @@
+# Manual staging deploy to DigitalOcean App Platform (develop branch).
+# Add repository secret: DIGITALOCEAN_ACCESS_TOKEN
+# Add repository variables or secrets for staging env (see .env.staging.example).
+
+name: Deploy staging
+
+on:
+  workflow_dispatch:
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    environment: staging
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 20
+          cache: npm
+
+      - name: Install dependencies
+        run: npm ci
+
+      - uses: digitalocean/action-doctl@v2
+        with:
+          token: ${{ secrets.DIGITALOCEAN_ACCESS_TOKEN }}
+
+      - name: Write staging env file from secrets
+        env:
+          STAGING_ENV_FILE: ${{ secrets.STAGING_ENV_FILE }}
+        run: |
+          if [ -z "$STAGING_ENV_FILE" ]; then
+            echo "Add GitHub secret STAGING_ENV_FILE (full contents of .env.staging)"
+            exit 1
+          fi
+          printf '%s' "$STAGING_ENV_FILE" > .env.staging
+
+      - name: Deploy to App Platform
+        run: npm run deploy:staging
