@@ -1,34 +1,67 @@
-import sgMail from '@sendgrid/mail';
+import { SESClient, SendEmailCommand } from '@aws-sdk/client-ses';
 import logger from '../config/logger.js';
 
-const sendGridApiKey = process.env.SENDGRID_API_KEY;
-const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'support@secondbeat.in';
+const getFromEmail = () => process.env.SES_FROM_EMAIL || 'support@secondbeat.in';
 
-const ensureSendGridConfigured = () => {
-  if (!sendGridApiKey) {
-    const error = new Error('SENDGRID_API_KEY is not configured');
-    error.code = 'SENDGRID_NOT_CONFIGURED';
+const ensureSesConfigured = () => {
+  const region = process.env.AWS_REGION;
+  const accessKeyId = process.env.AWS_ACCESS_KEY_ID;
+  const secretAccessKey = process.env.AWS_SECRET_ACCESS_KEY;
+
+  if (!region || !accessKeyId || !secretAccessKey) {
+    const error = new Error(
+      'AWS SES is not configured. Set AWS_REGION, AWS_ACCESS_KEY_ID, and AWS_SECRET_ACCESS_KEY.',
+    );
+    error.code = 'EMAIL_NOT_CONFIGURED';
     throw error;
   }
 
-  if (!sendGridApiKey.startsWith('SG.')) {
-    const error = new Error('SENDGRID_API_KEY must start with "SG."');
-    error.code = 'SENDGRID_INVALID_KEY';
-    throw error;
+  return { region, accessKeyId, secretAccessKey };
+};
+
+const createSesClient = ({ region, accessKeyId, secretAccessKey }) => new SESClient({
+  region,
+  credentials: {
+    accessKeyId,
+    secretAccessKey,
+  },
+});
+
+const mapSesError = (error) => {
+  const wrapped = new Error(error.message || 'Failed to send email');
+  wrapped.name = error.name;
+
+  if (error.name === 'InvalidClientTokenId' || error.name === 'UnrecognizedClientException') {
+    wrapped.code = 'EMAIL_UNAUTHORIZED';
+  } else {
+    wrapped.code = 'EMAIL_SEND_FAILED';
   }
 
-  sgMail.setApiKey(sendGridApiKey);
+  return wrapped;
 };
 
 const sendEmail = async ({ to, subject, html }) => {
-  ensureSendGridConfigured();
+  const config = ensureSesConfigured();
+  const client = createSesClient(config);
 
-  await sgMail.send({
-    to,
-    from: fromEmail,
-    subject,
-    html,
-  });
+  const commandInput = {
+    Source: getFromEmail(),
+    Destination: { ToAddresses: [to] },
+    Message: {
+      Subject: { Data: subject, Charset: 'UTF-8' },
+      Body: { Html: { Data: html, Charset: 'UTF-8' } },
+    },
+  };
+
+  if (process.env.SES_CONFIGURATION_SET) {
+    commandInput.ConfigurationSetName = process.env.SES_CONFIGURATION_SET;
+  }
+
+  try {
+    await client.send(new SendEmailCommand(commandInput));
+  } catch (error) {
+    throw mapSesError(error);
+  }
 
   logger.info('Email sent successfully', { to, subject });
 };

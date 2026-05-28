@@ -47,11 +47,17 @@ services:
         value: https://REPLACE_PRODUCTION_CLIENT_ORIGIN/activate
       - key: SUPABASE_PASSWORD_RESET_REDIRECT_URL
         value: https://REPLACE_PRODUCTION_CLIENT_ORIGIN/reset-password
-      - key: SENDGRID_API_KEY
+      - key: AWS_REGION
+        value: ap-south-1
+      - key: AWS_ACCESS_KEY_ID
         scope: RUN_TIME
         type: SECRET
         value: REPLACE_ME
-      - key: SENDGRID_FROM_EMAIL
+      - key: AWS_SECRET_ACCESS_KEY
+        scope: RUN_TIME
+        type: SECRET
+        value: REPLACE_ME
+      - key: SES_FROM_EMAIL
         value: support@secondbeat.in
       - key: CLOUDFLARE_ACCOUNT_ID
         value: REPLACE_ME

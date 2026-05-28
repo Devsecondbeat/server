@@ -48,8 +48,19 @@ const handleAuthError = (res, error) => {
   if (error.code === 'SUPABASE_NOT_CONFIGURED' || error.code === 'SUPABASE_ADMIN_NOT_CONFIGURED') {
     return res.status(503).json({ success: false, error: error.message });
   }
-  if (error.code === 'SENDGRID_NOT_CONFIGURED' || error.code === 'SENDGRID_INVALID_KEY') {
+  if (error.code === 'EMAIL_NOT_CONFIGURED') {
     return res.status(503).json({ success: false, error: error.message });
+  }
+  if (error.code === 'EMAIL_UNAUTHORIZED' || error.code === 'EMAIL_SEND_FAILED') {
+    const isQuotaError = error.name === 'Throttling'
+      || error.message.includes('Maximum sending rate exceeded');
+
+    return res.status(503).json({
+      success: false,
+      error: isQuotaError
+        ? 'Email service quota exceeded. Account may still be created — contact support or try again later.'
+        : `Email delivery failed: ${error.message}`,
+    });
   }
 
   const mapped = mapSupabaseAuthError(error);

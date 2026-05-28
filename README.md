@@ -45,7 +45,7 @@ npm run deploy:staging
 
 See [`docs/deployment/digitalocean.md`](./docs/deployment/digitalocean.md). Pushes to `develop` auto-deploy after the app exists (`deploy_on_push: true`).
 
-External services (configured via app env vars): Supabase (auth + DB), SendGrid (email), Cloudflare Images (ad photos).
+External services (configured via app env vars): Supabase (auth + DB), Amazon SES (transactional email), Cloudflare Images (ad photos).
 
 ## API
 
