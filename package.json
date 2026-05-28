@@ -71,5 +71,6 @@
       "prettier --write"
     ]
   },
-  "type": "module"
+  "type": "module",
+  "packageManager": "npm@10.9.7"
 }
