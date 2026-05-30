@@ -14,6 +14,7 @@ vi.mock('../src/models/marketplace_model.js', () => ({
   MAX_IMAGES_PER_AD: 5,
   VALID_INSTRUMENT_TYPES: ['guitar', 'drums', 'piano', 'accessories'],
   INVALID_IMAGE_IDS: 'INVALID_IMAGE_IDS',
+  AD_LIMIT_REACHED: 'AD_LIMIT_REACHED',
   getInstrumentMakes: vi.fn(),
   createInstrumentAds: vi.fn(),
   getInstrumentAds: vi.fn(),
@@ -29,6 +30,7 @@ vi.mock('../src/models/marketplace_model.js', () => ({
 
 import app from '../src/server.js';
 import {
+  AD_LIMIT_REACHED,
   createInstrumentAds,
   deleteInstrumentAds,
   getAdOwner,
@@ -87,6 +89,31 @@ describe('marketplace routes', () => {
 
     expect(response.status).toBe(201);
     expect(response.body.data.id).toBe(1);
+  });
+
+  it('returns 409 when the user has reached the ad limit', async () => {
+    instrumentMakeExists.mockResolvedValue(true);
+    const error = new Error('Maximum 3 ads allowed per user');
+    error.code = AD_LIMIT_REACHED;
+    createInstrumentAds.mockRejectedValue(error);
+
+    const response = await request(app)
+      .post('/api/v1/instruments/createinstrumentAds')
+      .set('Authorization', 'Bearer test-token')
+      .send({
+        make_id: 1,
+        name: 'Strat',
+        description: 'Nice guitar',
+        price: 500,
+        condition: 'good',
+      });
+
+    expect(response.status).toBe(409);
+    expect(response.body).toEqual({
+      success: false,
+      error: 'Maximum 3 ads allowed per user',
+      code: AD_LIMIT_REACHED,
+    });
   });
 
   it('returns 403 when updating someone else ad', async () => {
