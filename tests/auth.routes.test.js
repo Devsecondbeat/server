@@ -18,7 +18,14 @@ vi.mock('../src/Utils/sendEmail.js', () => ({
 }));
 
 import app from '../src/server.js';
-import { signInWithPassword } from '../src/services/supabaseAuth.js';
+import {
+  createActivationResendLink,
+  createPasswordRecoveryLink,
+  createSignupWithActivationLink,
+  refreshAuthSession,
+  signInWithPassword,
+} from '../src/services/supabaseAuth.js';
+import { sendActivationEmail, sendPasswordResetEmail } from '../src/Utils/sendEmail.js';
 
 describe('auth routes', () => {
   beforeEach(() => {
@@ -53,6 +60,90 @@ describe('auth routes', () => {
     expect(response.status).toBe(200);
     expect(response.body.success).toBe(true);
     expect(response.body.session.access_token).toBe('access');
+  });
+
+  it('creates a signup and sends the activation email', async () => {
+    createSignupWithActivationLink.mockResolvedValue({
+      user: { id: 'user-1', email: 'user@example.com' },
+      activationLink: 'https://activate.example/link',
+    });
+
+    const response = await request(app)
+      .post('/api/v1/auth/signup')
+      .send({
+        email: 'user@example.com',
+        password: 'password123',
+        firstName: 'Ada',
+        lastName: 'Lovelace',
+      });
+
+    expect(response.status).toBe(201);
+    expect(response.body.success).toBe(true);
+    expect(createSignupWithActivationLink).toHaveBeenCalledWith({
+      email: 'user@example.com',
+      password: 'password123',
+      metadata: {
+        first_name: 'Ada',
+        last_name: 'Lovelace',
+      },
+      redirectTo: undefined,
+    });
+    expect(sendActivationEmail).toHaveBeenCalledWith(
+      'user@example.com',
+      'https://activate.example/link',
+      'Ada Lovelace',
+    );
+  });
+
+  it('returns a refreshed session when the refresh token is valid', async () => {
+    refreshAuthSession.mockResolvedValue({
+      user: { id: 'user-1', email: 'user@example.com' },
+      session: {
+        access_token: 'new-access',
+        refresh_token: 'new-refresh',
+        expires_in: 3600,
+        token_type: 'bearer',
+      },
+    });
+
+    const response = await request(app)
+      .post('/api/v1/auth/refresh')
+      .send({ refresh_token: 'refresh-token' });
+
+    expect(response.status).toBe(200);
+    expect(response.body.success).toBe(true);
+    expect(response.body.session.access_token).toBe('new-access');
+    expect(refreshAuthSession).toHaveBeenCalledWith('refresh-token');
+  });
+
+  it('hides password recovery lookup failures from clients', async () => {
+    createPasswordRecoveryLink.mockRejectedValue(new Error('User not found'));
+
+    const response = await request(app)
+      .post('/api/v1/auth/password/recovery')
+      .send({ email: 'missing@example.com' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      success: true,
+      message: 'If an account with that email exists, you will receive password reset instructions.',
+    });
+    expect(sendPasswordResetEmail).not.toHaveBeenCalled();
+  });
+
+  it('hides activation resend lookup failures from clients', async () => {
+    createActivationResendLink.mockRejectedValue(new Error('User not found'));
+
+    const response = await request(app)
+      .post('/api/v1/auth/activation/resend')
+      .send({ email: 'missing@example.com' });
+
+    expect(response.status).toBe(200);
+    expect(response.body).toMatchObject({
+      success: true,
+      message: 'If an account with that email exists, you will receive an activation email.',
+    });
+    expect(sendActivationEmail).not.toHaveBeenCalled();
   });
 
   it('returns 401 for invalid credentials', async () => {
