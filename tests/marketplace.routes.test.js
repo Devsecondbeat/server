@@ -32,6 +32,7 @@ import {
   createInstrumentAds,
   deleteInstrumentAds,
   getAdOwner,
+  getInstrumentAdsbyUser,
   instrumentMakeExists,
   updateInstrumentAds,
 } from '../src/models/marketplace_model.js';
@@ -87,6 +88,16 @@ describe('marketplace routes', () => {
 
     expect(response.status).toBe(201);
     expect(response.body.data.id).toBe(1);
+  });
+
+  it('returns 400 for invalid user IDs before querying ads', async () => {
+    const response = await request(app)
+      .get('/api/v1/instruments/getinstrumentAdsbyUser/not-a-uuid')
+      .set('Authorization', 'Bearer test-token');
+
+    expect(response.status).toBe(400);
+    expect(response.body.code).toBe('INVALID_USER_ID');
+    expect(getInstrumentAdsbyUser).not.toHaveBeenCalled();
   });
 
   it('returns 403 when updating someone else ad', async () => {
