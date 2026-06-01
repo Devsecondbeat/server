@@ -25,7 +25,30 @@ export const createRateLimiter = ({
   return next();
 };
 
+const clientIp = (req) => req.ip || req.socket.remoteAddress || 'unknown';
+
 export const authRateLimiter = createRateLimiter({
   windowMs: 60_000,
   max: parseInt(process.env.AUTH_RATE_LIMIT_MAX || '20', 10),
+});
+
+// Stricter, dedicated limiter for token refresh. Uses a namespaced key so its
+// bucket is independent from the shared auth bucket above (which is keyed by raw
+// IP). Refresh is an unauthenticated upstream Supabase call, so it gets a tighter
+// per-IP cap to prevent quota/latency exhaustion from garbage refresh floods.
+export const refreshRateLimiter = createRateLimiter({
+  windowMs: 60_000,
+  max: parseInt(process.env.REFRESH_RATE_LIMIT_MAX || '10', 10),
+  keyGenerator: (req) => `refresh:${clientIp(req)}`,
+  message: 'Too many refresh requests, please try again later',
+});
+
+// Limiter for image-bearing marketplace writes. These are authenticated routes,
+// so prefer a per-account key (falling back to IP) and a namespaced bucket so it
+// does not interfere with auth/refresh limits.
+export const writeRateLimiter = createRateLimiter({
+  windowMs: 60_000,
+  max: parseInt(process.env.WRITE_RATE_LIMIT_MAX || '60', 10),
+  keyGenerator: (req) => `write:${req.user?.sub || req.user?.id || clientIp(req)}`,
+  message: 'Too many write requests, please try again later',
 });

@@ -2,6 +2,49 @@ import logger from '../config/logger.js';
 
 const CLOUDFLARE_API_BASE = 'https://api.cloudflare.com/client/v4';
 
+const getFetchTimeoutMs = () => parseInt(process.env.CLOUDFLARE_FETCH_TIMEOUT_MS || '5000', 10);
+const getValidationConcurrency = () => parseInt(
+  process.env.CLOUDFLARE_VALIDATION_CONCURRENCY || '5',
+  10,
+);
+
+/**
+ * fetch wrapper that aborts after a bounded timeout so a slow/hung Cloudflare
+ * response can never tie up callers (or the DB pool) indefinitely.
+ */
+const fetchWithTimeout = async (url, options = {}) => {
+  const controller = new AbortController();
+  const timer = setTimeout(() => controller.abort(), getFetchTimeoutMs());
+  try {
+    return await fetch(url, { ...options, signal: controller.signal });
+  } finally {
+    clearTimeout(timer);
+  }
+};
+
+/**
+ * Run an async worker over items with a bounded concurrency, preserving order.
+ * Caps the number of simultaneous outbound Cloudflare calls per request.
+ */
+const mapWithConcurrency = async (items, limit, worker) => {
+  const results = new Array(items.length);
+  let cursor = 0;
+
+  /* eslint-disable no-await-in-loop -- a pool worker must process its items sequentially */
+  const runNext = async () => {
+    while (cursor < items.length) {
+      const current = cursor;
+      cursor += 1;
+      results[current] = await worker(items[current], current);
+    }
+  };
+  /* eslint-enable no-await-in-loop */
+
+  const workerCount = Math.max(1, Math.min(limit, items.length));
+  await Promise.all(Array.from({ length: workerCount }, () => runNext()));
+  return results;
+};
+
 /**
  * Get Cloudflare Images configuration from environment variables
  */
@@ -32,7 +75,7 @@ const getDirectUploadUrl = async () => {
     const formData = new FormData();
     formData.append('requireSignedURLs', 'false');
 
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${CLOUDFLARE_API_BASE}/accounts/${accountId}/images/v2/direct_upload`,
       {
         method: 'POST',
@@ -89,7 +132,7 @@ const deleteImage = async (imageId) => {
   try {
     const { accountId, apiToken } = getCloudflareConfig();
 
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${CLOUDFLARE_API_BASE}/accounts/${accountId}/images/v1/${imageId}`,
       {
         method: 'DELETE',
@@ -159,7 +202,7 @@ const imageExists = async (imageId) => {
   try {
     const { accountId, apiToken } = getCloudflareConfig();
 
-    const response = await fetch(
+    const response = await fetchWithTimeout(
       `${CLOUDFLARE_API_BASE}/accounts/${accountId}/images/v1/${imageId}`,
       {
         method: 'GET',
@@ -187,12 +230,11 @@ const validateImageIds = async (imageIds) => {
     return { valid: true, invalidIds: [] };
   }
 
-  const checkPromises = imageIds.map(async (id) => ({
-    id,
-    exists: await imageExists(id),
-  }));
-
-  const results = await Promise.all(checkPromises);
+  const results = await mapWithConcurrency(
+    imageIds,
+    getValidationConcurrency(),
+    async (id) => ({ id, exists: await imageExists(id) }),
+  );
   const invalidIds = results.filter((r) => !r.exists).map((r) => r.id);
 
   return {

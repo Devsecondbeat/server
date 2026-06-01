@@ -144,28 +144,31 @@ const VALID_INSTRUMENT_TYPES = ['guitar', 'drums', 'piano', 'accessories'];
 
 const createInstrumentAds = async (adData) => {
   const pool = getPool();
+
+  const {
+    user_id: userId,
+    make_id: makeId,
+    name,
+    description,
+    price,
+    condition,
+    instrument_type: instrumentType,
+    imageIds,
+  } = adData;
+
+  if (instrumentType && !VALID_INSTRUMENT_TYPES.includes(instrumentType)) {
+    throw new Error(
+      `instrument_type must be one of: ${VALID_INSTRUMENT_TYPES.join(', ')}`,
+    );
+  }
+
+  // Validate Cloudflare image IDs before checking out a DB client so the
+  // (capped) connection pool is never held during outbound Cloudflare calls.
+  await assertValidImageIds(imageIds);
+
   const client = await pool.connect();
 
   try {
-    const {
-      user_id: userId,
-      make_id: makeId,
-      name,
-      description,
-      price,
-      condition,
-      instrument_type: instrumentType,
-      imageIds,
-    } = adData;
-
-    if (instrumentType && !VALID_INSTRUMENT_TYPES.includes(instrumentType)) {
-      throw new Error(
-        `instrument_type must be one of: ${VALID_INSTRUMENT_TYPES.join(', ')}`,
-      );
-    }
-
-    await assertValidImageIds(imageIds);
-
     await client.query('BEGIN');
 
     const countResult = await client.query(
@@ -276,20 +279,23 @@ const getInstrumentAdsbyUser = async (userId) => {
 
 const updateInstrumentAds = async (adId, updateData) => {
   const pool = getPool();
+
+  const {
+    description,
+    price,
+    condition,
+    imageIds,
+  } = updateData;
+
+  // Validate Cloudflare image IDs before checking out a DB client so the
+  // (capped) connection pool is never held during outbound Cloudflare calls.
+  if (imageIds !== undefined) {
+    await assertValidImageIds(imageIds);
+  }
+
   const client = await pool.connect();
 
   try {
-    const {
-      description,
-      price,
-      condition,
-      imageIds,
-    } = updateData;
-
-    if (imageIds !== undefined) {
-      await assertValidImageIds(imageIds);
-    }
-
     await client.query('BEGIN');
 
     const result = await client.query(
@@ -443,11 +449,14 @@ const deleteAllAdImages = async (adId) => {
 
 const updateAdImages = async (adId, imageIds) => {
   const pool = getPool();
+
+  // Validate Cloudflare image IDs before checking out a DB client so the
+  // (capped) connection pool is never held during outbound Cloudflare calls.
+  await assertValidImageIds(imageIds);
+
   const client = await pool.connect();
 
   try {
-    await assertValidImageIds(imageIds);
-
     await client.query('BEGIN');
     const existingImages = await getAdImagesWithClient(client, adId);
     const updatedImages = await syncAdImages(client, adId, imageIds);
