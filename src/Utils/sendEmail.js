@@ -1,5 +1,6 @@
 import sgMail from '@sendgrid/mail';
 import logger from '../config/logger.js';
+import { formatAuthFailure } from './authErrorLog.js';
 
 const sendGridApiKey = process.env.SENDGRID_API_KEY;
 const fromEmail = process.env.SENDGRID_FROM_EMAIL || 'support@secondbeat.in';
@@ -20,8 +21,16 @@ const ensureSendGridConfigured = () => {
   sgMail.setApiKey(sendGridApiKey);
 };
 
-const sendEmail = async ({ to, subject, html }) => {
+const sendEmail = async ({ to, subject, html, operation, requestId }) => {
   ensureSendGridConfigured();
+
+  logger.info('SendGrid send starting', {
+    event: 'outbound.email.start',
+    operation,
+    requestId: requestId || null,
+    subject,
+    recipientDomain: typeof to === 'string' && to.includes('@') ? to.split('@')[1] : undefined,
+  });
 
   try {
     await sgMail.send({
@@ -34,18 +43,35 @@ const sendEmail = async ({ to, subject, html }) => {
     const sendGridMessage = error.response?.body?.errors?.[0]?.message;
     const wrapped = new Error(sendGridMessage || error.message || 'Failed to send email');
     wrapped.code = error.code === 401 ? 'SENDGRID_UNAUTHORIZED' : 'SENDGRID_SEND_FAILED';
+    wrapped.sendGridStatus = error.code;
+    logger.error('SendGrid send failed', {
+      event: 'outbound.email.failed',
+      operation,
+      requestId: requestId || null,
+      subject,
+      recipientDomain: typeof to === 'string' && to.includes('@') ? to.split('@')[1] : undefined,
+      ...formatAuthFailure(wrapped),
+    });
     throw wrapped;
   }
 
-  logger.info('Email sent successfully', { to, subject });
+  logger.info('SendGrid send succeeded', {
+    event: 'outbound.email.succeeded',
+    operation,
+    requestId: requestId || null,
+    subject,
+    recipientDomain: typeof to === 'string' && to.includes('@') ? to.split('@')[1] : undefined,
+  });
 };
 
-export const sendActivationEmail = async (recipientEmail, activationLink, userName) => {
+export const sendActivationEmail = async (recipientEmail, activationLink, userName, options = {}) => {
   const displayName = userName || 'there';
 
   await sendEmail({
     to: recipientEmail,
     subject: 'Activate Your Account - Second Beat',
+    operation: 'activation',
+    requestId: options.requestId,
     html: `
       <p>Dear ${displayName},</p>
       <p>Thank you for registering with Second Beat! To activate your account and gain access
@@ -63,10 +89,12 @@ export const sendActivationEmail = async (recipientEmail, activationLink, userNa
   });
 };
 
-export const sendPasswordResetEmail = async (recipientEmail, resetLink) => {
+export const sendPasswordResetEmail = async (recipientEmail, resetLink, options = {}) => {
   await sendEmail({
     to: recipientEmail,
     subject: 'Reset Your Password - Second Beat',
+    operation: 'password_reset',
+    requestId: options.requestId,
     html: `
       <p>Dear User,</p>
       <p>We received a request to reset your password for your Second Beat account.

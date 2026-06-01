@@ -62,7 +62,7 @@ export const assertRedirectToHonored = (requestedRedirect, actionLink) => {
   const error = new Error(
     `Supabase Auth replaced redirect_to with "${actualRedirect}" instead of "${requestedRedirect}". `
     + 'In Supabase Dashboard → Authentication → URL Configuration: set Site URL to your staging client origin '
-    + 'and add the full activation URL under Redirect URLs.',
+    + 'and add the full activation or password-reset URL under Redirect URLs.',
   );
   error.code = 'AUTH_REDIRECT_MISMATCH';
   throw error;

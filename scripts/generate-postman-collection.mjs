@@ -141,6 +141,15 @@ const collection = {
       request('Password recovery', 'POST', '/api/v1/auth/password/recovery', {
         body: { email: '{{testEmail}}' },
       }),
+      request('Password update (after reset link)', 'POST', '/api/v1/auth/password/update', {
+        description:
+          'Use access_token and refresh_token from the /reset-password redirect URL hash, or code for PKCE.',
+        body: {
+          password: '{{testPassword}}',
+          access_token: '{{recoveryAccessToken}}',
+          refresh_token: '{{recoveryRefreshToken}}',
+        },
+      }),
       request('Get current user', 'GET', '/api/v1/auth/me', { auth: bearerAuth }),
       request('Verify token (GET)', 'GET', '/api/v1/auth/verify', { auth: bearerAuth }),
       request('Verify token (POST)', 'POST', '/api/v1/auth/verify', { auth: bearerAuth }),

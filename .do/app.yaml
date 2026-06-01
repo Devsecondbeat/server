@@ -8,6 +8,16 @@
 name: secondbeat-api-staging
 region: blr
 
+# Required so App Platform forwards public HTTP to the api service (avoids 503 via_upstream).
+ingress:
+  rules:
+    - component:
+        name: api
+        preserve_path_prefix: true
+      match:
+        path:
+          prefix: /
+
 services:
   - name: api
     github:

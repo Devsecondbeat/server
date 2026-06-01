@@ -3,6 +3,7 @@ import {
   getCurrentUser,
   refreshSession,
   requestPasswordRecovery,
+  updatePassword,
   resendActivationEmail,
   signIn,
   signOut,
@@ -20,6 +21,7 @@ authRoutes.post('/login', authRateLimiter, signIn);
 authRoutes.post('/refresh', authRateLimiter, refreshRateLimiter, refreshSession);
 authRoutes.post('/logout', authRateLimiter, signOut);
 authRoutes.post('/password/recovery', authRateLimiter, requestPasswordRecovery);
+authRoutes.post('/password/update', authRateLimiter, updatePassword);
 
 authRoutes.get('/me', verifySupabaseTokenMiddleware, getCurrentUser);
 authRoutes.post('/verify', verifySupabaseTokenMiddleware, verifyToken);

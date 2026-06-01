@@ -98,6 +98,7 @@ export const createSignupWithActivationLink = async ({
   const admin = requireAdminClient();
 
   logger.info('Supabase admin generateLink starting', {
+    event: 'outbound.supabase.start',
     operation: 'signup',
     email,
     redirectTo: redirectTo || null,
@@ -122,6 +123,7 @@ export const createSignupWithActivationLink = async ({
   assertRedirectToHonored(redirectTo, data.properties.action_link);
 
   logger.info('Supabase admin generateLink succeeded', {
+    event: 'outbound.supabase.succeeded',
     operation: 'signup',
     userId: data.user?.id,
     email: data.user?.email,
@@ -136,6 +138,14 @@ export const createSignupWithActivationLink = async ({
 
 export const createActivationResendLink = async ({ email, redirectTo }) => {
   const admin = requireAdminClient();
+
+  logger.info('Supabase admin generateLink starting', {
+    event: 'outbound.supabase.start',
+    operation: 'activation_resend',
+    email,
+    redirectTo: redirectTo || null,
+  });
+
   const { data, error } = await admin.auth.admin.generateLink({
     type: 'magiclink',
     email,
@@ -143,10 +153,19 @@ export const createActivationResendLink = async ({ email, redirectTo }) => {
   });
 
   if (error) {
+    logSupabaseAuthFailure('activation_resend_generate_link', error);
     throw error;
   }
 
   assertRedirectToHonored(redirectTo, data.properties.action_link);
+
+  logger.info('Supabase admin generateLink succeeded', {
+    event: 'outbound.supabase.succeeded',
+    operation: 'activation_resend',
+    userId: data.user?.id,
+    email: data.user?.email,
+    redirectTo,
+  });
 
   return {
     user: data.user,
@@ -156,6 +175,14 @@ export const createActivationResendLink = async ({ email, redirectTo }) => {
 
 export const createPasswordRecoveryLink = async ({ email, redirectTo }) => {
   const admin = requireAdminClient();
+
+  logger.info('Supabase admin generateLink starting', {
+    event: 'outbound.supabase.start',
+    operation: 'password_recovery',
+    email,
+    redirectTo: redirectTo || null,
+  });
+
   const { data, error } = await admin.auth.admin.generateLink({
     type: 'recovery',
     email,
@@ -163,32 +190,150 @@ export const createPasswordRecoveryLink = async ({ email, redirectTo }) => {
   });
 
   if (error) {
+    logSupabaseAuthFailure('password_recovery_generate_link', error);
     throw error;
   }
 
   assertRedirectToHonored(redirectTo, data.properties.action_link);
 
+  logger.info('Supabase admin generateLink succeeded', {
+    event: 'outbound.supabase.succeeded',
+    operation: 'password_recovery',
+    userId: data.user?.id,
+    email: data.user?.email,
+    redirectTo,
+  });
+
   return data.properties.action_link;
+};
+
+export const updatePasswordAfterRecovery = async ({
+  password,
+  access_token,
+  refresh_token,
+  code,
+}) => {
+  const client = requireClient();
+
+  if (code) {
+    logger.info('Supabase exchangeCodeForSession starting', {
+      event: 'outbound.supabase.start',
+      operation: 'password_update_exchange_code',
+    });
+
+    const { data, error } = await client.auth.exchangeCodeForSession(code);
+
+    if (error) {
+      logSupabaseAuthFailure('password_update_exchange_code', error);
+      throw error;
+    }
+
+    logger.info('Supabase exchangeCodeForSession succeeded', {
+      event: 'outbound.supabase.succeeded',
+      operation: 'password_update_exchange_code',
+      userId: data.user?.id,
+    });
+  } else if (access_token && refresh_token) {
+    logger.info('Supabase setSession starting', {
+      event: 'outbound.supabase.start',
+      operation: 'password_update_set_session',
+    });
+
+    const { data, error } = await client.auth.setSession({
+      access_token,
+      refresh_token,
+    });
+
+    if (error) {
+      logSupabaseAuthFailure('password_update_set_session', error);
+      throw error;
+    }
+
+    logger.info('Supabase setSession succeeded', {
+      event: 'outbound.supabase.succeeded',
+      operation: 'password_update_set_session',
+      userId: data.user?.id,
+    });
+  } else {
+    const error = new Error(
+      'Recovery session is required. Provide access_token and refresh_token from the reset link, or code.',
+    );
+    error.code = 'PASSWORD_UPDATE_SESSION_REQUIRED';
+    throw error;
+  }
+
+  logger.info('Supabase updateUser (password) starting', {
+    event: 'outbound.supabase.start',
+    operation: 'password_update',
+  });
+
+  const { data, error } = await client.auth.updateUser({ password });
+
+  if (error) {
+    logSupabaseAuthFailure('password_update', error);
+    throw error;
+  }
+
+  const { data: sessionData } = await client.auth.getSession();
+
+  logger.info('Supabase updateUser (password) succeeded', {
+    event: 'outbound.supabase.succeeded',
+    operation: 'password_update',
+    userId: data.user?.id,
+  });
+
+  return {
+    user: data.user,
+    session: sessionData.session ?? null,
+  };
 };
 
 export const signInWithPassword = async ({ email, password }) => {
   const client = requireClient();
+
+  logger.info('Supabase signInWithPassword starting', {
+    event: 'outbound.supabase.start',
+    operation: 'sign_in',
+    email,
+  });
+
   const { data, error } = await client.auth.signInWithPassword({ email, password });
 
   if (error) {
+    logSupabaseAuthFailure('sign_in', error);
     throw error;
   }
+
+  logger.info('Supabase signInWithPassword succeeded', {
+    event: 'outbound.supabase.succeeded',
+    operation: 'sign_in',
+    userId: data.user?.id,
+    email: data.user?.email,
+  });
 
   return data;
 };
 
 export const refreshAuthSession = async (refreshToken) => {
   const client = requireClient();
+
+  logger.info('Supabase refreshSession starting', {
+    event: 'outbound.supabase.start',
+    operation: 'refresh_session',
+  });
+
   const { data, error } = await client.auth.refreshSession({ refresh_token: refreshToken });
 
   if (error) {
+    logSupabaseAuthFailure('refresh_session', error);
     throw error;
   }
+
+  logger.info('Supabase refreshSession succeeded', {
+    event: 'outbound.supabase.succeeded',
+    operation: 'refresh_session',
+    userId: data.user?.id,
+  });
 
   return data;
 };

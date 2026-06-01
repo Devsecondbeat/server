@@ -4,6 +4,15 @@
 name: secondbeat-api-prod
 region: blr
 
+ingress:
+  rules:
+    - component:
+        name: api
+        preserve_path_prefix: true
+      match:
+        path:
+          prefix: /
+
 services:
   - name: api
     github:

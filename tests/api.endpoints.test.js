@@ -13,6 +13,7 @@
  * | POST | /api/v1/auth/refresh |
  * | POST | /api/v1/auth/logout |
  * | POST | /api/v1/auth/password/recovery |
+ * | POST | /api/v1/auth/password/update |
  * | GET | /api/v1/auth/me |
  * | GET/POST | /api/v1/auth/verify |
  * | GET | /api/v1/instruments/getinstrumentMakes |
@@ -52,6 +53,7 @@ vi.mock('../src/services/supabaseAuth.js', () => ({
   createSignupWithActivationLink: vi.fn(),
   createActivationResendLink: vi.fn(),
   createPasswordRecoveryLink: vi.fn(),
+  updatePasswordAfterRecovery: vi.fn(),
   refreshAuthSession: vi.fn(),
   formatAuthUser: (user) => user,
   formatAuthSession: (session) => session,
@@ -92,8 +94,10 @@ import {
   createSignupWithActivationLink,
   createActivationResendLink,
   createPasswordRecoveryLink,
+  updatePasswordAfterRecovery,
   refreshAuthSession,
 } from '../src/services/supabaseAuth.js';
+import { sendPasswordResetEmail } from '../src/Utils/sendEmail.js';
 import { getDirectUploadUrls } from '../src/services/cloudflareImages.js';
 import {
   canAddImages,
@@ -244,9 +248,10 @@ describe('auth endpoints', () => {
   });
 
   it('POST /api/v1/auth/password/recovery returns 200', async () => {
-    createPasswordRecoveryLink.mockResolvedValue(
-      'https://project.supabase.co/auth/v1/verify?token=reset',
-    );
+    const resetLink =
+      'https://project.supabase.co/auth/v1/verify?token=reset&type=recovery'
+      + '&redirect_to=http%3A%2F%2Flocalhost%3A3000%2Freset-password';
+    createPasswordRecoveryLink.mockResolvedValue(resetLink);
 
     const res = await request(app)
       .post('/api/v1/auth/password/recovery')
@@ -254,6 +259,63 @@ describe('auth endpoints', () => {
 
     expect(res.status).toBe(200);
     expect(res.body.success).toBe(true);
+    expect(createPasswordRecoveryLink).toHaveBeenCalledWith({
+      email: 'user@example.com',
+      redirectTo: expect.stringMatching(/\/reset-password$/),
+    });
+    expect(sendPasswordResetEmail).toHaveBeenCalledWith(
+      'user@example.com',
+      resetLink,
+      expect.objectContaining({ requestId: expect.any(String) }),
+    );
+  });
+
+  it('POST /api/v1/auth/password/update returns 400 for invalid payload', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/password/update')
+      .send({ password: 'short' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.success).toBe(false);
+  });
+
+  it('POST /api/v1/auth/password/update returns 400 without recovery session', async () => {
+    const res = await request(app)
+      .post('/api/v1/auth/password/update')
+      .send({ password: 'password123' });
+
+    expect(res.status).toBe(400);
+    expect(res.body.error).toMatch(/Recovery session is required/);
+  });
+
+  it('POST /api/v1/auth/password/update returns 200 with recovery tokens', async () => {
+    updatePasswordAfterRecovery.mockResolvedValue({
+      user: testUser,
+      session: {
+        access_token: 'new-access',
+        refresh_token: 'new-refresh',
+        expires_in: 3600,
+        token_type: 'bearer',
+      },
+    });
+
+    const res = await request(app)
+      .post('/api/v1/auth/password/update')
+      .send({
+        password: 'newPassword123!',
+        access_token: 'recovery-access',
+        refresh_token: 'recovery-refresh',
+      });
+
+    expect(res.status).toBe(200);
+    expect(res.body.success).toBe(true);
+    expect(res.body.session.access_token).toBe('new-access');
+    expect(updatePasswordAfterRecovery).toHaveBeenCalledWith({
+      password: 'newPassword123!',
+      access_token: 'recovery-access',
+      refresh_token: 'recovery-refresh',
+      code: undefined,
+    });
   });
 
   it('GET /api/v1/auth/me returns the authenticated user', async () => {

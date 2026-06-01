@@ -1,8 +1,10 @@
 /**
- * Optional live checks against a running local server.
+ * Optional live smoke checks against a running local server.
  *
  *   npm run dev
  *   RUN_API_INTEGRATION=1 npm test -- tests/api.local.integration.test.js
+ *
+ * For full endpoint coverage use: npm run test:api:integration
  *
  * Set API_BASE_URL (default http://localhost:3000) and optional API_TEST_EMAIL /
  * API_TEST_PASSWORD for auth-protected routes.
